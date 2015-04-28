@@ -3,7 +3,7 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
+    QApplication a(argc, argv);  /* GIt HUB PRUEBA */
 
     QCoreApplication::setOrganizationName("Manchis");
     QCoreApplication::setApplicationName("Qt-SmallTextEditor");
