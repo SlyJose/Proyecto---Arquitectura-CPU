@@ -7,6 +7,7 @@
 #include <iostream>
 #include <QDebug>
 #include <QMessageBox>
+#include "principalthread.h"
 
 namespace Ui {
 class MainWindow;

@@ -52,7 +52,8 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
               hileraArchivo = hileraArchivo + " " + nuevaHileraArchivo;
          }
      }while(continuar);
-     qDebug() << hileraArchivo;
+     ui->textResult->setText(hileraArchivo);
+     principalThread programaPrincipal(hileraArchivo);
 }
 
 
