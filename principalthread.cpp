@@ -30,6 +30,9 @@ principalThread::principalThread(QString programa)
     int unaCifra = true;
     QString pcsTmp;
     int numCifras = 1;
+    bool signo = false;
+    QString numTemp;
+    bool ok;
 
     for(it = strTemp.begin(); it!=strTemp.end(); ++it){   /* Ciclo que lee cada digito y lo convierte a entero
                                                             almacenandolo en el vector de instrucciones: vecInstrucciones */
@@ -39,20 +42,18 @@ principalThread::principalThread(QString programa)
             pcsTmp.append(tmp);
         }else{
             if(*it == '|'){
+                vecInstrucciones[j] = numTemp.toInt(&ok, 10);
                 ++j;
                 unaCifra = true;
                 numCifras = 1;
+                signo = 1;
+                numTemp.clear();
             }else{
-                if(unaCifra){
-                    vecInstrucciones[j] = it->digitValue();
-                    numCifras *= 10;
-                    unaCifra = false;
-                }else{
-                    vecInstrucciones[j] = (vecInstrucciones[j]*numCifras) + it->digitValue();
-                }
+                numTemp.append(*it);
             }
         }
     }
+    vecInstrucciones[j] = numTemp.toInt(&ok, 10); //agrega el ultimo
     qDebug()<<"El vector quedo como:";
     for(int p=0; p<tamVec; ++p){
         qDebug()<<'-'<<vecInstrucciones[p];
