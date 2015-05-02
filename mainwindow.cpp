@@ -49,7 +49,7 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
               if (file.open (QIODevice::ReadOnly | QIODevice::Text)) {
                       nuevaHileraArchivo = file.readAll();
               }
-              hileraArchivo = hileraArchivo + " " + nuevaHileraArchivo;
+              hileraArchivo = hileraArchivo + "@" + nuevaHileraArchivo;
          }
      }while(continuar);
      ui->textResult->setText(hileraArchivo);

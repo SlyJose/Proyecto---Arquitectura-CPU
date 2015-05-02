@@ -22,7 +22,8 @@ public:
     ~principalThread();
 
 private:
-    int* vecInstrucciones;
+    int* vecInstrucciones;  /* Es el vector que va a tener las instrucciones de todos los programas.*/
+    int* vecPCs;            /* Vector con los indices donde inicia cada programa en el vector.*/
 };
 
 #endif // PRINCIPALTHREAD_H
