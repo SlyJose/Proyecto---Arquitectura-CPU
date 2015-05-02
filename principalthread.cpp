@@ -3,14 +3,11 @@
 principalThread::principalThread(QString programa)
 {
 
-    int fileSize = programa.size();
-
-    qDebug()<<"El tamano original es "<<fileSize;
     QString::iterator it;
     QString strTemp;
     int tamVec = 1;
-    //REVISAR!!
-    for(it = programa.begin(); it!=programa.end(); ++it){
+
+    for(it = programa.begin(); it!=programa.end(); ++it){ /* Se convierten todas las instrucciones a forma de vector */
         if(*it==' ' || *it=='\n'){
             ++it;
             strTemp.append('|');
@@ -18,15 +15,14 @@ principalThread::principalThread(QString programa)
         }
         strTemp.append(*it);
     }    
-    qDebug()<<strTemp;
-    qDebug()<<"El tamano del vector seria de "<<tamVec;
-
+    //qDebug()<<strTemp;
     vecInstrucciones = new int[tamVec];
     QString numTemp;
     int j = 0;
     int contador = 0;
 
-    for(it = strTemp.begin(); it!=strTemp.end(); ++it){
+    for(it = strTemp.begin(); it!=strTemp.end(); ++it){   /* Ciclo que lee cada digito y lo convierte a entero
+                                                            almacenandolo en el vector de instrucciones: vecInstrucciones */
         if(*it == '|'){
             ++j;
             contador = 0;
@@ -35,16 +31,16 @@ principalThread::principalThread(QString programa)
                 vecInstrucciones[j] = it->digitValue();
                 ++contador;
             }else{
-                vecInstrucciones[j] = (vecInstrucciones[j] * 10) + it->digitValue();
+                vecInstrucciones[j] = (vecInstrucciones[j] * 10) + it->digitValue(); /* Si el numero es de dos digitos, se sobreescribe el valor */
                 contador = 0;
             }
         }
     }
 
-    qDebug()<<"El vector quedo como:";
+    /*qDebug()<<"El vector quedo como:";
     for(int p=0; p<tamVec; ++p){
         qDebug()<<'-'<<vecInstrucciones[p];
-    }
+    } */
 
 }
 
