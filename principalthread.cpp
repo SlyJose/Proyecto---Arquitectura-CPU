@@ -61,7 +61,7 @@ principalThread::principalThread(QString programa, int numProgramas)
     for(int p=0; p<tamVec; ++p){
         qDebug()<<'-'<<vecInstrucciones[p];
     }
-\
+    \
 
     qDebug()<<"El vector de PCs es:";
     for(int i=0; i<numProgramas; ++i){
@@ -77,9 +77,17 @@ principalThread::~principalThread()
     delete[] vecPCs;
 }
 
-void *principalThread::procesador()
+bool principalThread::lw(int regX, int regY, int n)
 {
-    int* registros = new int[32];               /* Los registros de cada procesador.*/
-    registros[0] = 0;                           //en el registro 0 siempre hay un 0
 
 }
+
+void *principalThread::procesador()
+{
+
+    int registros[32];   /* Los registros de cada procesador.*/
+    registros[0] = 0;   //en el registro 0 siempre hay un 0
+
+}
+
+

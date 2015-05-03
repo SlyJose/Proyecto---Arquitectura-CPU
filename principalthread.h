@@ -5,7 +5,6 @@
 #include <QDebug>
 #include <iterator>
 #include <pthread.h>
-#include "methods.h"
 
 //Los tipos de instrucciones que puede simular el procesador
 #define DADDI   8
