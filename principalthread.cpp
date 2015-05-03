@@ -78,6 +78,7 @@ principalThread::~principalThread()
 
 void principalThread::procesador()
 {
-
+    int* registros = new int[32];   /* Los registros de cada procesador.*/
+    registros[0] = 0;   //en el registro 0 siempre hay un 0
 }
 
