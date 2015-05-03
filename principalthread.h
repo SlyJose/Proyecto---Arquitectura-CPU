@@ -23,7 +23,19 @@ public:
     principalThread(QString programa, int numProgramas);
     ~principalThread();
 
-    void procesador();
+    int daddi(int regX, int regY, int n);
+    int dadd(int regX, int regY, int regZ);
+    int dsub(int regX, int regY, int regZ);
+
+    bool lw(int regX, int regY, int n);
+    bool sw(int regX, int regY, int n);
+
+    void beqz(int regX, int etiq);
+    void bnez(int regX, int etiq);
+
+    void fin();
+
+    void* procesador();
 
 private:
     int* vecInstrucciones;  /* Es el vector que va a tener las instrucciones de todos los programas.*/
