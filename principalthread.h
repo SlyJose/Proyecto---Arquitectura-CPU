@@ -18,7 +18,7 @@
 class principalThread
 {
 public:
-    principalThread(QString programa);
+    principalThread(QString programa, int numProgramas);
     ~principalThread();
 
 private:

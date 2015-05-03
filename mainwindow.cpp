@@ -24,9 +24,11 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
     QFile newFile(rutaArchivo);
     QString hileraArchivo;
     QString nuevaHileraArchivo;
+    int numProgramas = 0;
 
      if (newFile.open (QIODevice::ReadOnly | QIODevice::Text)) {
              hileraArchivo = newFile.readAll();                     /* hileraArchivo almacena todo el archivo */
+             ++numProgramas;
      }
 
      bool continuar = false;
@@ -50,10 +52,11 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
                       nuevaHileraArchivo = file.readAll();
               }
               hileraArchivo = hileraArchivo + "@" + nuevaHileraArchivo;
+              ++numProgramas;
          }
      }while(continuar);
      ui->textResult->setText(hileraArchivo);
-     principalThread programaPrincipal(hileraArchivo);
+     principalThread programaPrincipal(hileraArchivo, numProgramas);
 }
 
 

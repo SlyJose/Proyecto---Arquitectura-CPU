@@ -1,11 +1,15 @@
 #include "principalthread.h"
 
-principalThread::principalThread(QString programa)
+principalThread::principalThread(QString programa, int numProgramas)
 {
 
     QString::iterator it;
     QString strTemp;
     int tamVec = 1;
+
+    int indiceVecPCs = 1;
+    vecPCs = new int[numProgramas];
+    vecPCs[0] = 0;      //Siempre el primer PC es la posicion 0.
 
     for(it = programa.begin(); it!=programa.end(); ++it){ /* Se convierten todas las instrucciones a forma de vector */
         if(*it==' ' || *it=='\n'){
@@ -28,7 +32,6 @@ principalThread::principalThread(QString programa)
     vecInstrucciones = new int[tamVec];
     int j = 0;
     int unaCifra = true;
-    QString pcsTmp;
     int numCifras = 1;
     bool signo = false;
     QString numTemp;
@@ -38,8 +41,8 @@ principalThread::principalThread(QString programa)
                                                             almacenandolo en el vector de instrucciones: vecInstrucciones */
 
         if(*it == '@'){
-            int tmp = j+1;
-            pcsTmp.append(tmp);
+            vecPCs[indiceVecPCs] = j+1;
+            ++indiceVecPCs;
         }else{
             if(*it == '|'){
                 vecInstrucciones[j] = numTemp.toInt(&ok, 10);
@@ -58,19 +61,10 @@ principalThread::principalThread(QString programa)
     for(int p=0; p<tamVec; ++p){
         qDebug()<<'-'<<vecInstrucciones[p];
     }
-
-    qDebug()<<"El vector de pcs tiene los indices: "<<pcsTmp;
-    int tamVecPc = pcsTmp.length();
-    vecPCs = new int[tamVecPc];
-    j = 0;
-
-    for(it = pcsTmp.begin(); it != pcsTmp.end(); ++it){
-        vecPCs[j] = it->digitValue();
-        ++j;
-    }
+\
 
     qDebug()<<"El vector de PCs es:";
-    for(int i=0; i<tamVecPc; ++i){
+    for(int i=0; i<numProgramas; ++i){
         qDebug()<<vecPCs[i];
     }
 
