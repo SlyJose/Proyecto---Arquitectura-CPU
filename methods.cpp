@@ -6,17 +6,17 @@ methods::methods()
 
 }
 
-int methods::daddi(int regY, int n)
+int methods::daddi(int regX, int regY, int n)
 {
 
 }
 
-int methods::dadd(int regY, int regZ)
+int methods::dadd(int regX, int regY, int regZ)
 {
 
 }
 
-int methods::dsub(int regY, int regZ)
+int methods::dsub(int regX, int regY, int regZ)
 {
 
 }

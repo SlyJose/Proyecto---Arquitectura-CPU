@@ -4,6 +4,8 @@
 #include <QString>
 #include <QDebug>
 #include <iterator>
+#include <pthread.h>
+#include "methods.h"
 
 //Los tipos de instrucciones que puede simular el procesador
 #define DADDI   8
@@ -20,6 +22,8 @@ class principalThread
 public:
     principalThread(QString programa, int numProgramas);
     ~principalThread();
+
+    void procesador();
 
 private:
     int* vecInstrucciones;  /* Es el vector que va a tener las instrucciones de todos los programas.*/

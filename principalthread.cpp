@@ -76,3 +76,8 @@ principalThread::~principalThread()
 
 }
 
+void principalThread::procesador()
+{
+
+}
+
