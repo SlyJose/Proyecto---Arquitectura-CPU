@@ -40,6 +40,12 @@ public:
 private:
     int* vecInstrucciones;  /* Es el vector que va a tener las instrucciones de todos los programas.*/
     int* vecPCs;            /* Vector con los indices donde inicia cada programa en el vector.*/
+
+
+    int memoryCPU1[5][4];   /* Estructuras de datos para cada procesador */
+    int cacheCPU1[6][4];
+    int directCPU1[4][4];
+
 };
 
 #endif // PRINCIPALTHREAD_H
