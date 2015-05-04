@@ -26,3 +26,6 @@
 *.exe
 *.out
 *.app
+
+# Documentos propios del usuario
+*.pro.user
