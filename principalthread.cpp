@@ -1,3 +1,14 @@
+/**
+  * Universidad de Costa Rica
+  * Escuela de Ciencias de la Computación e Informática
+  * Arquitectura de Computadores
+  * Proyecto Programado Parte 1 - Simulacion procesador MIPS
+  * @author Fabian Rodriguez
+  * @author Jose Pablo Ureña
+  * I Semestre 2015
+  */
+
+
 #include "principalthread.h"
 
 principalThread::principalThread(QString programa, int numProgramas)
@@ -77,9 +88,40 @@ principalThread::~principalThread()
     delete[] vecPCs;
 }
 
-bool principalThread::lw(int regX, int regY, int n)
+void principalThread::daddi(int regX, int regY, int n, int *vecRegs)
 {
+    vecRegs[regX] = vecRegs[regY]+n;
+}
 
+void principalThread::dadd(int regX, int regY, int regZ, int *vecRegs)
+{
+    vecRegs[regX] = vecRegs[regY]+vecRegs[regZ];
+}
+
+void principalThread::dsub(int regX, int regY, int regZ, int* vecRegs)
+{
+    vecRegs[regX] = vecRegs[regY]-vecRegs[regZ];
+}
+
+bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
+{
+    int dirPrev = n + regY;
+    int numBloque = dirPrev/16;
+    int bloqueCache = numBloque%4;  /* Numero del bloque a buscar en el cache*/
+
+    int indiceCache = 0;
+    //Hay que bloquear el recurso critico (la cache)
+    while(indiceCache < 4){
+        if(cacheCPU1[4][indiceCache] == bloqueCache){   //Encontre el bloque en mi cache
+            vecRegs[regX] = bloqueCache/4;
+            return true;                        //Retorna true ya que tuvo exito con el lw.
+        }
+        ++indiceCache;
+    }
+    if(indiceCache >= 4){   //Significa que no esta el bloque a buscar en el cache
+
+    }
+    //Libero el recurso critico (la cache)
 }
 
 void *principalThread::procesador()
@@ -90,7 +132,7 @@ void *principalThread::procesador()
 }
 
 
-bool sw(int regX, int regY, int n){         /* Funcion que realiza el store */
+bool principalThread::sw(int regX, int regY, int n){         /* Funcion que realiza el store */
 
     int dirPrev = n + regY;
     int numBloque = dirPrev / 16;
@@ -109,8 +151,8 @@ bool sw(int regX, int regY, int n){         /* Funcion que realiza el store */
 
             for(int i = 0; i < 4; ++i){                              /* Se modifica el estado del bloque en el directorio, estado M: modificado */
                 if(directCPU1[i][0] == bloqueCache){                 /* Se busca la etiqueta del bloque en el directorio */
-                        directCPU1[i][1] = M;                        /* Se cambia el estado y se le indica al CPU 1 */
-                        directCPU1[i][2] = 1;
+                    directCPU1[i][1] = M;                        /* Se cambia el estado y se le indica al CPU 1 */
+                    directCPU1[i][2] = 1;
                 }
             }
         }
