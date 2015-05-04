@@ -30,3 +30,7 @@
 *.user
 
 *.autosave
+
+mainwindow.cpp.autosave
+
+*.autosave
