@@ -120,7 +120,10 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
         ++indiceCache;
     }
     if(indiceCache >= 4){   //Significa que no esta el bloque a buscar en el cache
-        
+
+        //busco en el directorio a ver quien es el dueño del bloque (no se implementa en esta parte)
+
+        //Lo tengo que traer de memoria. memoryCPU1[vecRegs[regY]+n]
     }
     //Libero el recurso critico (la cache)
 }
@@ -150,15 +153,20 @@ void *principalThread::procesador(int PC)
             break;
         case BEQZ:
             if(registros[vecInstrucciones[IP-3]] == 0){
-                IP += vecInstrucciones[IP-1];
+                IP += (vecInstrucciones[IP-1])*4;
             }
             break;
         case BNEZ:
             if(registros[vecInstrucciones[IP-3]] != 0){
-                IP += vecInstrucciones[IP-1];
+                IP += (vecInstrucciones[IP-1])*4;
             }
             break;
         }
+    }
+    if(vecInstrucciones[IP] == FIN){
+        fin();
+
+        pthread_exit(NULL);
     }
 }
 
@@ -214,13 +222,7 @@ bool principalThread::sw(int regX, int regY, int n){         /* Funcion que real
     
 }
 
+void principalThread::fin()
+{
 
-
-
-
-
-
-
-
-
-
+}

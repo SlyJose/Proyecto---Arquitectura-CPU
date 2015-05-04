@@ -86,9 +86,6 @@ private:
     bool lw(int regX, int regY, int n, int* vecRegs);
     bool sw(int regX, int regY, int n);
 
-    void beqz(int regX, int etiq);
-    void bnez(int regX, int etiq);
-
     void fin();
 
     // Miembros de la clase
