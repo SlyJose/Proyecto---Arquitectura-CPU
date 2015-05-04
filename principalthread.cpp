@@ -124,11 +124,31 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     //Libero el recurso critico (la cache)
 }
 
-void *principalThread::procesador()
+void *principalThread::procesador(int PC)
 {
-
     int registros[32];   /* Los registros de cada procesador.*/
     registros[0] = 0;   //en el registro 0 siempre hay un 0
+    int instructionPointer = PC;
+    while(vecInstrucciones[instructionPointer] != FIN){ //mientras no encuentre una instruccion de finalizacion
+        int instruccion = vecInstrucciones[instructionPointer];
+        switch(instruccion){
+        case DADDI:
+            break;
+        case DADD:
+            break;
+        case DSUB:
+            break;
+        case LW:
+            break;
+        case SW:
+            break;
+        case BEQZ:
+            break;
+        case BNEZ:
+            break;
+        }
+        instructionPointer += 4;    //Salta a la siguiente instruccion.
+    }
 }
 
 
