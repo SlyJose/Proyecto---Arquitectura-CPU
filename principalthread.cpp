@@ -114,6 +114,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     while(indiceCache < 4){
         if(cacheCPU1[4][indiceCache] == bloqueCache){   //Encontre el bloque en mi cache
             vecRegs[regX] = bloqueCache/4;
+            //Libero el recurso critico (la cache)
             return true;                        //Retorna true ya que tuvo exito con el lw.
         }
         ++indiceCache;
