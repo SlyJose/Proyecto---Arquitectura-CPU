@@ -39,6 +39,18 @@ public:
     ~principalThread();
 
     /**
+     * Este va a ser el proceso que se va a realizar con los hilos. Hace la simulacion completa
+     * del procesador MIPS.
+     * @brief procesador
+     * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
+     * @return void* ya que asi lo ocupa los pthreads.
+     */
+    void* procesador(int PC);
+
+private:
+
+    // Funciones privadas de la clase.
+    /**
      * Se encarga de hacer una suma de un inmediato \var n con el registro \var regY y lo almacena
      * en el registro identificado por \var regX.
      * @brief daddi instruccion propia del procesador MIPS.
@@ -79,16 +91,7 @@ public:
 
     void fin();
 
-    /**
-     * Este va a ser el proceso que se va a realizar con los hilos. Hace la simulacion completa
-     * del procesador MIPS.
-     * @brief procesador
-     * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
-     * @return void* ya que asi lo ocupa los pthreads.
-     */
-    void* procesador(int PC);
-
-private:
+    // Miembros de la clase
     int* vecInstrucciones;  /*!< Es el vector que va a tener las instrucciones de todos los programas.*/
     int* vecPCs;            /*!< Vector con los indices donde inicia cada programa en el vector.*/
 

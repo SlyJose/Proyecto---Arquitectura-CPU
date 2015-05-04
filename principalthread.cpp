@@ -128,11 +128,13 @@ void *principalThread::procesador(int PC)
 {
     int registros[32];   /* Los registros de cada procesador.*/
     registros[0] = 0;   //en el registro 0 siempre hay un 0
-    int instructionPointer = PC;
-    while(vecInstrucciones[instructionPointer] != FIN){ //mientras no encuentre una instruccion de finalizacion
-        int instruccion = vecInstrucciones[instructionPointer];
+
+    int IP = PC;    //IP = instruction pointer
+    while(vecInstrucciones[IP] != FIN){ //mientras no encuentre una instruccion de finalizacion
+        int instruccion = vecInstrucciones[IP];
         switch(instruccion){
         case DADDI:
+            daddi(vecInstrucciones[IP+1], vecInstrucciones[IP+2], vecInstrucciones[IP+3], registros);
             break;
         case DADD:
             break;
@@ -147,7 +149,7 @@ void *principalThread::procesador(int PC)
         case BNEZ:
             break;
         }
-        instructionPointer += 4;    //Salta a la siguiente instruccion.
+        IP += 4;    //Salta a la siguiente instruccion.
     }
 }
 
