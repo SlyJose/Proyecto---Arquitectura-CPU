@@ -16,6 +16,12 @@
 #define BNEZ    5
 #define FIN     63
 
+//Los tipos de estado del directorio
+
+#define U   0
+#define C   1
+#define M   2
+
 class principalThread
 {
 public:

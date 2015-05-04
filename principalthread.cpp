@@ -87,7 +87,67 @@ void *principalThread::procesador()
 
     int registros[32];   /* Los registros de cada procesador.*/
     registros[0] = 0;   //en el registro 0 siempre hay un 0
+}
+
+
+bool sw(int regX, int regY, int n){         /* Funcion que realiza el store */
+
+    int dirPrev = n + regY;
+    int numBloque = dirPrev / 16;
+    int bloqueCache = numBloque % 4;        /* Se obtiene el numero del bloque a buscar en cache */
+
+    bool vacio = true;
+
+    int contador = 0;
+    while(vacio && contador < 4){                           /* Se da lectura en la fila 4 del cache para buscar la etiqueta del bloque*/
+
+        if(cacheCPU1[4][contador] == bloqueCache){          /* El bloque si se encuentra en cache */
+            vacio = false;
+
+            //palabraEnBloque = bloqueCache / 4;
+            //modifica la palabra con el contenido de RX
+
+            for(int i = 0; i < 4; ++i){                              /* Se modifica el estado del bloque en el directorio, estado M: modificado */
+                if(directCPU1[i][0] == bloqueCache){                 /* Se busca la etiqueta del bloque en el directorio */
+                        directCPU1[i][1] = M;                        /* Se cambia el estado y se le indica al CPU 1 */
+                        directCPU1[i][2] = 1;
+                }
+            }
+        }
+        ++contador;
+    }
+
+    if(vacio){                                               /* El bloque no se encuentra en cache */
+
+        int estadoActual;
+
+        for(int i = 0; i < 4; ++i){                              /* Verifica el estado del bloque en el directorio */
+            if(directCPU1[i][0] == bloqueCache){                 /* Encuentra la etiqueta del bloque en el directorio */
+
+                if(directCPU1[i][1] == M){
+
+                    // copia el bloque en ram
+                }
+
+                // copia de ram el numbloque
+                // le cae encima al bloque en cache
+                // palabraEnBloque = bloqueCache / 4
+                // modifica palabraEnBloque en cache con Rx
+                // marca en el directorio M para ese bloque
+            }
+        }
+    }
+
 
 }
+
+
+
+
+
+
+
+
+
 
 
