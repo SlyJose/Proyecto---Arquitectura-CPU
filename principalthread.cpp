@@ -88,21 +88,6 @@ principalThread::~principalThread()
     delete[] vecPCs;
 }
 
-void principalThread::daddi(int regX, int regY, int n, int *vecRegs)
-{
-    vecRegs[regX] = vecRegs[regY]+n;
-}
-
-void principalThread::dadd(int regX, int regY, int regZ, int *vecRegs)
-{
-    vecRegs[regX] = vecRegs[regY]+vecRegs[regZ];
-}
-
-void principalThread::dsub(int regX, int regY, int regZ, int* vecRegs)
-{
-    vecRegs[regX] = vecRegs[regY]-vecRegs[regZ];
-}
-
 bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
 {
     int dirPrev = n + regY;
@@ -113,7 +98,8 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     //Hay que bloquear el recurso critico (la cache)
     while(indiceCache < 4){
         if(cacheCPU1[4][indiceCache] == bloqueCache){   //Encontre el bloque en mi cache
-            vecRegs[regX] = bloqueCache/4;
+            //Tengo que revisar el estado del bloque (no se implementa en esta parte).
+            vecRegs[regX] = cacheCPU1[bloqueCache/4][bloqueCache];
             //Libero el recurso critico (la cache)
             return true;                        //Retorna true ya que tuvo exito con el lw.
         }
@@ -123,47 +109,56 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
 
         //busco en el directorio a ver quien es el dueño del bloque (no se implementa en esta parte)
 
-        //Lo tengo que traer de memoria. memoryCPU1[vecRegs[regY]+n]
+        //Lo tengo que traer de memoria.
+        //Intento bloquear el recurso critico (mi memoria). Si no puedo entonces libero la cache tambien.
+        //memoryCPU1[vecRegs[regY]+n]
     }
     //Libero el recurso critico (la cache)
 }
 
-void *principalThread::procesador(int PC)
+void *principalThread::procesador(void* PC)
 {
     int registros[32];   /* Los registros de cada procesador.*/
     registros[0] = 0;   //en el registro 0 siempre hay un 0
     
-    int IP = PC;    //IP = instruction pointer
+
+    long IP = (long)PC;    //IP = instruction pointer
+
     while(vecInstrucciones[IP] != FIN){ //mientras no encuentre una instruccion de finalizacion
-        int instruccion = vecInstrucciones[IP];
+
+        int IR[4];  //IR = instruction register
+        IR[0] = vecInstrucciones[IP];       //Codigo de instruccion
+        IR[1] = vecInstrucciones[IP+1];     //Primer parametro
+        IR[2] = vecInstrucciones[IP+2];     //Segundo parametro
+        IR[3] = vecInstrucciones[IP+3];     //Tercer parametro
         IP += 4;    //Salta a la siguiente instruccion.
-        switch(instruccion){
+        switch(IR[0]){
         case DADDI:
-            daddi(vecInstrucciones[IP-3], vecInstrucciones[IP-2], vecInstrucciones[IP-1], registros);
+            registros[IR[1]] = registros[IR[2]] + IR[3];                //Rx <- Ry + n
             break;
         case DADD:
-            dadd(vecInstrucciones[IP-3], vecInstrucciones[IP-2], vecInstrucciones[IP-1], registros);
+            registros[IR[1]] = registros[IR[2]] + registros[IR[3]];     //Rx <- Ry + Rz
             break;
         case DSUB:
-            dsub(vecInstrucciones[IP-3], vecInstrucciones[IP-2], vecInstrucciones[IP-1], registros);
+            registros[IR[1]] = registros[IR[2]] - registros[IR[3]];     //Rx <- Ry - Rz
             break;
         case LW:
             break;
         case SW:
             break;
         case BEQZ:
-            if(registros[vecInstrucciones[IP-3]] == 0){
-                IP += (vecInstrucciones[IP-1])*4;
+            if(registros[IR[1]] == 0){                                  //Rx = 0, salta
+                IP += (IR[3])*4;
             }
             break;
         case BNEZ:
-            if(registros[vecInstrucciones[IP-3]] != 0){
-                IP += (vecInstrucciones[IP-1])*4;
+            if(registros[IR[1]] != 0){                                  //Rx != 0, salta
+                IP += (IR[3])*4;
             }
             break;
         }
     }
-    if(vecInstrucciones[IP] == FIN){
+    if(IR[0] == FIN){
         fin();
 
         pthread_exit(NULL);

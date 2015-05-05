@@ -45,43 +45,11 @@ public:
      * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
      * @return void* ya que asi lo ocupa los pthreads.
      */
-    void* procesador(int PC);
+    void* procesador(void *PC);
 
 private:
 
     // Funciones privadas de la clase.
-    /**
-     * Se encarga de hacer una suma de un inmediato \var n con el registro \var regY y lo almacena
-     * en el registro identificado por \var regX.
-     * @brief daddi instruccion propia del procesador MIPS.
-     * @param regX registro donde se va a guardar el resultado.
-     * @param regY registro con el valor a sumar.
-     * @param n inmediato a sumar con \var regY.
-     * @param vecRegs vector con los registros del procesador.
-     */
-    void daddi(int regX, int regY, int n, int* vecRegs);
-
-    /**
-     * Se encarga de hacer la suma del valor almacenado en \var regz con el valor almacenado
-     * en \var regY y guardar la suma en el registro indicado por \var regX.
-     * @brief dadd instruccion propia del procesador MIPS.
-     * @param regX registro donde se va a guardar el resultado.
-     * @param regY registro donde va a estar el valor a usar para la suma.
-     * @param regZ registro donde va a estar el otro valor a usar por la suma.
-     * @param vecRegs vector con los registros del procesador.
-     */
-    void dadd(int regX, int regY, int regZ, int* vecRegs);
-
-    /**
-     * Se encarga de hacer la resta de lo que esta guardado en \var regY menos el valor guardado
-     * en \var regZ y guarda el resultado en el registro identificado por \var regX.
-     * @brief dsub instruccion propia del procesador MIPS
-     * @param regX registro donde se va a guardar el resultado de la operacion.
-     * @param regY registro al que se le va a hacer la resta.
-     * @param regZ registro con el valor que se va a restar.
-     * @param vecRegs vecto con los registros del procesador.
-     */
-    void dsub(int regX, int regY, int regZ, int* vecRegs);
 
     bool lw(int regX, int regY, int n, int* vecRegs);
     bool sw(int regX, int regY, int n);
