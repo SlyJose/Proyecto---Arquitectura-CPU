@@ -31,7 +31,7 @@
 #define U   0
 #define C   1
 #define M   2
-#define S   3
+#define I   3
 
 class principalThread
 {

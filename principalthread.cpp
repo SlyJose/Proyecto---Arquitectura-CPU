@@ -99,7 +99,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     while(indiceCache < 4){
         if(cacheCPU1[4][indiceCache] == bloqueCache){   //Encontre el bloque en mi cache
             //Tengo que revisar el estado del bloque (no se implementa en esta parte).
-            vecRegs[regX] = cacheCPU1[(dirPrev%16)/4][bloqueCache];
+            vecRegs[regX] = cacheCPU1[(dirPrev%16)/4][bloqueCache]; // Pone la palabra en el registro.
             //Libero el recurso critico (la cache)
             return true;                        //Retorna true ya que tuvo exito con el lw.
         }
@@ -107,15 +107,18 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     }
     if(indiceCache >= 4){   //Significa que no esta el bloque a buscar en el cache
 
-        //busco en el directorio a ver quien es el dueño del bloque (no se implementa en esta parte)
-        //Lo tengo que traer de memoria.
-        //Intento bloquear el recurso critico (mi memoria). Si no puedo entonces libero la cache tambien.
-        //memoryCPU1[vecRegs[regY]+n]
+        // Busco en el directorio a ver quien es el dueño del bloque (no se implementa en esta parte)
+        // Lo tengo que traer de memoria.
+        // Intento bloquear el recurso critico (mi memoria). Si no puedo entonces libero la cache tambien.
         for(int i=0; i<4; ++i){
-            cacheCPU[i][bloqueCache] = memoryCPU1[numBloque][i]; //***** Hay que revisar el tamano de la memoria.
+            cacheCPU1[i][bloqueCache] = memoryCPU1[numBloque][i]; //***** Hay que revisar el tamano de la memoria.
         }
+        // Libero el semaforo de la memoria
         cacheCPU1[4][bloqueCache] = bloqueCache;    // Le pone el identificador al bloque en cache.
         cacheCPU1[5][bloqueCache] = C;              // Pone el estado del bloque como compartido.
+        vecRegs[regX] = cacheCPU1[(dirPrev%16)/4][bloqueCache];     // Pone la palabra en el registro.
+        //Libero el recurso critico (la cache)
+        return true;
     }
     //Libero el recurso critico (la cache)
     return false;
