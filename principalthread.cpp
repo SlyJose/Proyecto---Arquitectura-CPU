@@ -171,7 +171,7 @@ void *principalThread::procesador(void* PC)
 }
 
 
-bool principalThread::sw(int regX, int regY, int n){         /* Funcion que realiza el store */
+bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Funcion que realiza el store */
     
     int dirPrev = n + regY;
     int numBloque = dirPrev / 16;
@@ -185,9 +185,8 @@ bool principalThread::sw(int regX, int regY, int n){         /* Funcion que real
         if(cacheCPU1[4][contador] == bloqueCache){          /* El bloque si se encuentra en cache */
             vacio = false;
             
-            //palabraEnBloque = bloqueCache / 4;
-            //modifica la palabra con el contenido de RX
-            
+            cacheCPU1[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];   /* Se almacena el contenido del registro en la posicion de la cache */
+
             for(int i = 0; i < 4; ++i){                              /* Se modifica el estado del bloque en el directorio, estado M: modificado */
                 if(directCPU1[i][0] == bloqueCache){                 /* Se busca la etiqueta del bloque en el directorio */
                     directCPU1[i][1] = M;                        /* Se cambia el estado y se le indica al CPU 1 */
@@ -198,28 +197,24 @@ bool principalThread::sw(int regX, int regY, int n){         /* Funcion que real
         ++contador;
     }
     
-    if(vacio){                                               /* El bloque no se encuentra en cache */
-        
-        int estadoActual;
-        
-        for(int i = 0; i < 4; ++i){                              /* Verifica el estado del bloque en el directorio */
-            if(directCPU1[i][0] == bloqueCache){                 /* Encuentra la etiqueta del bloque en el directorio */
-                
-                if(directCPU1[i][1] == M){
-                    
-                    // copia el bloque en ram
+    if(vacio){                                               /* El bloque no se encuentra en cache y debe cargarse de memoria */
+
+        if(cacheCPU1[5][bloqueCache] == M){                 /* El bloque esta en estado M y debe guardarse en memoria */
+            for(int i = 0; i < 4; ++i){
+                memoryCPU1[i][bloqueCache] = cacheCPU1[i][bloqueCache];     /* Se copia cada estado del bloque en cache a memoria */
+            }
+            for(int j = 0; j < 4; ++j){
+                cacheCPU1[j][bloqueCache] = memoryCPU1[j][numBloque];       /* Se copia el bloque requerido de memoria a cache */
+            }
+        }else{
+            if(cacheCPU1[5][bloqueCache] == C){                             /* El bloque esta compartido */
+                for(int j = 0; j < 4; ++j){
+                    cacheCPU1[j][bloqueCache] = memoryCPU1[j][numBloque];       /* Se copia el bloque requerido de memoria a cache */
                 }
-                
-                // copia de ram el numbloque
-                // le cae encima al bloque en cache
-                // palabraEnBloque = bloqueCache / 4
-                // modifica palabraEnBloque en cache con Rx
-                // marca en el directorio M para ese bloque
             }
         }
+        cacheCPU1[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                 /* Una vez cargado el bloque, se modifica el registro */
     }
-    
-    
 }
 
 void principalThread::fin()
