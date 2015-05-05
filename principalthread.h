@@ -26,11 +26,12 @@
 #define BNEZ    5
 #define FIN     63
 
-//Los tipos de estado del directorio
+//Los tipos de estado del bloque en directorio y cache
 
 #define U   0
 #define C   1
 #define M   2
+#define S   3
 
 class principalThread
 {
