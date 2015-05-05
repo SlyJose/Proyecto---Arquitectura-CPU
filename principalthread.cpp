@@ -182,14 +182,15 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
     int contador = 0;
     while(vacio && contador < 4){                           /* Se da lectura en la fila 4 del cache para buscar la etiqueta del bloque*/
         
-        if(cacheCPU1[4][contador] == bloqueCache){          /* El bloque si se encuentra en cache */
+        if(cacheCPU1[4][contador] == numBloque){          /* El bloque si se encuentra en cache */
             vacio = false;
             
             cacheCPU1[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];   /* Se almacena el contenido del registro en la posicion de la cache */
+            cacheCPU1[5][bloqueCache] = M;                            /* Se modifica el estado del bloque */
 
             for(int i = 0; i < 4; ++i){                              /* Se modifica el estado del bloque en el directorio, estado M: modificado */
                 if(directCPU1[i][0] == bloqueCache){                 /* Se busca la etiqueta del bloque en el directorio */
-                    directCPU1[i][1] = M;                        /* Se cambia el estado y se le indica al CPU 1 */
+                    directCPU1[i][1] = M;                            /* Se cambia el estado y se le indica al CPU 1 */
                     directCPU1[i][2] = 1;
                 }
             }
@@ -201,7 +202,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
 
         if(cacheCPU1[5][bloqueCache] == M){                 /* El bloque esta en estado M y debe guardarse en memoria */
             for(int i = 0; i < 4; ++i){
-                memoryCPU1[i][bloqueCache] = cacheCPU1[i][bloqueCache];     /* Se copia cada estado del bloque en cache a memoria */
+                memoryCPU1[i][cacheCPU1[4][bloqueCache]] = cacheCPU1[i][bloqueCache];     /* Se copia cada estado del bloque en cache a memoria */
             }
             for(int j = 0; j < 4; ++j){
                 cacheCPU1[j][bloqueCache] = memoryCPU1[j][numBloque];       /* Se copia el bloque requerido de memoria a cache */
@@ -214,6 +215,8 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
             }
         }
         cacheCPU1[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                 /* Una vez cargado el bloque, se modifica el registro */
+        cacheCPU1[5][bloqueCache] = M;                                          /* Se modifica el estado del bloque */
+        cacheCPU1[4][bloqueCache] = numBloque;                                  /* Nuevo bloque en cache */
     }
 }
 
