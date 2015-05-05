@@ -97,8 +97,13 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     int indiceCache = 0;
     //Hay que bloquear el recurso critico (la cache)
     while(indiceCache < 4){
-        if(cacheCPU1[4][indiceCache] == bloqueCache){   //Encontre el bloque en mi cache
-            //Tengo que revisar el estado del bloque (no se implementa en esta parte).
+        if(cacheCPU1[4][indiceCache] == numBloque){   //Encontre el bloque en mi cache
+
+            //--------------------------------------------------------------------------------
+            //| * Tengo que revisar el estado del bloque (no se implementa en esta parte).   |
+            //| * Dura 2 ciclos de reloj haciendo esto.                                      |
+            //--------------------------------------------------------------------------------
+
             vecRegs[regX] = cacheCPU1[(dirPrev%16)/4][bloqueCache]; // Pone la palabra en el registro.
             //Libero el recurso critico (la cache)
             return true;                        //Retorna true ya que tuvo exito con el lw.
@@ -107,14 +112,23 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     }
     if(indiceCache >= 4){   //Significa que no esta el bloque a buscar en el cache
 
-        // Busco en el directorio a ver quien es el dueño del bloque (no se implementa en esta parte)
-        // Lo tengo que traer de memoria.
-        // Intento bloquear el recurso critico (mi memoria). Si no puedo entonces libero la cache tambien.
-        for(int i=0; i<4; ++i){
-            cacheCPU1[i][bloqueCache] = memoryCPU1[numBloque][i]; //***** Hay que revisar el tamano de la memoria.
+        //-------------------------------------------------------------------------------------------------------
+        //| * Va a tardar 16 ciclos de reloj en hacer lo que viene abajo.                                       |
+        //| * Busco en el directorio a ver quien es el dueño del bloque (no se implementa en esta parte)        |
+        //| * Intento bloquear el recurso critico (mi memoria). Si no puedo entonces libero la cache tambien.   |
+        //-------------------------------------------------------------------------------------------------------
+
+        if(cacheCPU1[5][bloqueCache] == M){ // El bloque al que le voy a caer encima en cache esta modificado, tengo que pasarlo a memoria. (Write back)
+            int bloqueMem = cacheCPU1[4][bloqueCache];
+            for(int i=0; i<4; ++i){
+                memoryCPU1[i][bloqueMem] = cacheCPU1[i][bloqueCache];   // Hago la copia del bloque modificado en cache a memoria.
+            }
+        }
+        for(int i=0; i<4; ++i){ //Write allocate
+            cacheCPU1[i][bloqueCache] = memoryCPU1[i][numBloque]; // Subo el bloque de memoria a cache.
         }
         // Libero el semaforo de la memoria
-        cacheCPU1[4][bloqueCache] = bloqueCache;    // Le pone el identificador al bloque en cache.
+        cacheCPU1[4][bloqueCache] = numBloque;    // Le pone el identificador al bloque en cache.
         cacheCPU1[5][bloqueCache] = C;              // Pone el estado del bloque como compartido.
         vecRegs[regX] = cacheCPU1[(dirPrev%16)/4][bloqueCache];     // Pone la palabra en el registro.
         //Libero el recurso critico (la cache)
