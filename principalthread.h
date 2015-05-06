@@ -16,7 +16,10 @@
 #include <iterator>
 #include <pthread.h>
 
-//Los tipos de instrucciones que puede simular el procesador
+//---------------------------------------------------------------
+//| Los tipos de instrucciones que puede simular el procesador. |
+//---------------------------------------------------------------
+
 #define DADDI   8
 #define DADD    32
 #define DSUB    34
@@ -26,7 +29,9 @@
 #define BNEZ    5
 #define FIN     63
 
-//Los tipos de estado del bloque en directorio y cache
+//---------------------------------------------------------
+//| Los tipos de estado del bloque en directorio y cache. |
+//---------------------------------------------------------
 
 #define U   0
 #define C   1
@@ -35,9 +40,7 @@
 
 class principalThread
 {
-public:
-    principalThread(QString programa, int numProgramas);
-    ~principalThread();
+private:
 
     /**
      * Este va a ser el proceso que se va a realizar con los hilos. Hace la simulacion completa
@@ -46,23 +49,58 @@ public:
      * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
      * @return void* ya que asi lo ocupa los pthreads.
      */
-    void* procesador(void *PC);
+    void* procesador(void *threadStruct);
+
+public:
+
+    principalThread(QString programa, int numProgramas); //constructor
+    ~principalThread(); //destructor
+
+    /**
+     * Este va a ser el proceso grande que va a controlar la distribucion de los hilos entre los procesadores.
+     * Tambien va a llevar cuenta del reloj de la CPU y controlar la barrera ciclica.
+     * @brief controlador
+     */
+    void controlador();
+
+    /**
+     * Retorna el miembro de la clase que lleva registro de las estadisticas que se recolectan despues de la
+     * ejecucion de cada hilo y al finalizar todo el programa.
+     * @brief getEstadisticas
+     * @return QString con las estadisticas al final de la simulacion.
+     */
+    QString getEstadisticas();
 
 private:
 
-    // Funciones privadas de la clase.
+    //-----------------------------------
+    //| Funciones privadas de la clase. |
+    //-----------------------------------
 
     bool lw(int regX, int regY, int n, int* vecRegs);
     bool sw(int regX, int regY, int n, int *vecRegs);
 
     void fin();
 
-    // Miembros de la clase
+    //------------------------
+    //| Miembros de la clase |
+    //------------------------
+
     int* vecInstrucciones;  /*!< Es el vector que va a tener las instrucciones de todos los programas.*/
     int* vecPCs;            /*!< Vector con los indices donde inicia cada programa en el vector.*/
+    int numHilos;           /*!< Indica el numero de hilos que se van a simular. */
+    QString estadisticas;   /*!< En este String se va a llevar el registro de las estadisticas de todos los hilos. */
 
+    struct threadData{      /*!< Para pasar parametros a los threads. */
+        int idThread;
+        int numPC;
+    };
 
-    int memoryCPU1[4][16];   /* Estructuras de datos para cada procesador */
+    //---------------------------------------------
+    //| Estructuras de datos para cada procesador |
+    //---------------------------------------------
+
+    int memoryCPU1[4][16];
     int cacheCPU1[6][4];
     int directCPU1[4][4];
 

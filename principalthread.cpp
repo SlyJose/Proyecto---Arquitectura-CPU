@@ -17,9 +17,10 @@ principalThread::principalThread(QString programa, int numProgramas)
     QString::iterator it;
     QString strTemp;
     int tamVec = 1;
+    numHilos = numProgramas;
     
     int indiceVecPCs = 1;
-    vecPCs = new int[numProgramas];
+    vecPCs = new int[numHilos];
     vecPCs[0] = 0;      //Siempre el primer PC es la posicion 0.
     
     for(it = programa.begin(); it!=programa.end(); ++it){ /* Se convierten todas las instrucciones a forma de vector */
@@ -123,13 +124,16 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     return false;
 }
 
-void *principalThread::procesador(void* PC)
+void* principalThread::procesador(void* threadStruct)
 {
     int registros[32];   /* Los registros de cada procesador.*/
     registros[0] = 0;   //en el registro 0 siempre hay un 0
-    
 
-    long IP = (long)PC;    //IP = instruction pointer
+    struct threadData *misDatos;
+    misDatos = (struct threadData *) threadStruct;
+    
+    int IP = misDatos->numPC;   //IP = Instruction pointer
+    int idHilo = misDatos->idThread;
 
     while(vecInstrucciones[IP] != FIN){ //mientras no encuentre una instruccion de finalizacion
 
@@ -169,8 +173,32 @@ void *principalThread::procesador(void* PC)
     }
     if(vecInstrucciones[IP] == FIN){
         fin();
-        pthread_exit(NULL);
     }
+
+    pthread_exit(NULL);
+}
+
+void principalThread::controlador()
+{
+    int idThread = 1;
+    struct threadData tD;
+    pthread_t hilo;
+    //-------------------------------------------------------------
+    //| Para la segunda parte se debe hacer un vector de threads. |
+    //-------------------------------------------------------------
+
+    for(int indicePCs = 0; indicePCs < numHilos; ++indicePCs){
+        tD.idThread = idThread;
+        tD.numPC = vecPCs[indicePCs];
+        int estadoThread = pthread_create(&hilo, NULL, procesador, (void*) &tD);
+        ++indicePCs;
+        ++idThread;
+    }
+}
+
+QString principalThread::getEstadisticas()
+{
+    return estadisticas;
 }
 
 
