@@ -34,11 +34,6 @@ principalThread::principalThread(QString programa, int numProgramas)
         }
         strTemp.append(*it);
     }
-    //qDebug()<<strTemp;
-    
-    
-    qDebug()<<strTemp;
-    qDebug()<<"El tamano del vector seria de "<<tamVec;
     
     vecInstrucciones = new int[tamVec];
     int j = 0;
@@ -68,17 +63,7 @@ principalThread::principalThread(QString programa, int numProgramas)
         }
     }
     vecInstrucciones[j] = numTemp.toInt(&ok, 10); //agrega el ultimo
-    qDebug()<<"El vector quedo como:";
-    for(int p=0; p<tamVec; ++p){
-        qDebug()<<'-'<<vecInstrucciones[p];
-    }
-    \
-    
-    qDebug()<<"El vector de PCs es:";
-    for(int i=0; i<numProgramas; ++i){
-        qDebug()<<vecPCs[i];
-    }
-    
+
 }
 
 
