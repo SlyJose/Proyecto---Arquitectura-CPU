@@ -38,6 +38,12 @@
 #define M   2
 #define I   3
 
+struct threadData{      /*!< Para pasar parametros a los threads. */
+    void* ptr;
+    int idThread;
+    int numPC;
+};
+
 class principalThread
 {
 private:
@@ -49,8 +55,9 @@ private:
      * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
      * @return void* ya que asi lo ocupa los pthreads.
      */
-    void* procesador(void *threadStruct);
+    void* procesador(int id, int pc);
 
+    static void* procesadorHelper(void* threadStruct);
 public:
 
     principalThread(QString programa, int numProgramas); //constructor
@@ -91,10 +98,6 @@ private:
     int numHilos;           /*!< Indica el numero de hilos que se van a simular. */
     QString estadisticas;   /*!< En este String se va a llevar el registro de las estadisticas de todos los hilos. */
 
-    struct threadData{      /*!< Para pasar parametros a los threads. */
-        int idThread;
-        int numPC;
-    };
 
     //---------------------------------------------
     //| Estructuras de datos para cada procesador |

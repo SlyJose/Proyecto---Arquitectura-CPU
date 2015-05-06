@@ -124,16 +124,13 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     return false;
 }
 
-void* principalThread::procesador(void* threadStruct)
+void* principalThread::procesador(int id, int pc)
 {
     int registros[32];   /* Los registros de cada procesador.*/
     registros[0] = 0;   //en el registro 0 siempre hay un 0
-
-    struct threadData *misDatos;
-    misDatos = (struct threadData *) threadStruct;
     
-    int IP = misDatos->numPC;   //IP = Instruction pointer
-    int idHilo = misDatos->idThread;
+    int IP = pc;   //IP = Instruction pointer
+    int idHilo = id;
 
     while(vecInstrucciones[IP] != FIN){ //mientras no encuentre una instruccion de finalizacion
 
@@ -178,6 +175,18 @@ void* principalThread::procesador(void* threadStruct)
     pthread_exit(NULL);
 }
 
+void *principalThread::procesadorHelper(void *threadStruct)
+{
+    //---------------
+    //|     FEO     |
+    //---------------
+
+    struct threadData *td;
+    td = (struct threadData*)threadStruct;
+    static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC);
+    return (NULL);
+}
+
 void principalThread::controlador()
 {
     int idThread = 1;
@@ -190,7 +199,9 @@ void principalThread::controlador()
     for(int indicePCs = 0; indicePCs < numHilos; ++indicePCs){
         tD.idThread = idThread;
         tD.numPC = vecPCs[indicePCs];
-        int estadoThread = pthread_create(&hilo, NULL, procesador, (void*) &tD);
+
+        int estadoThread = pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
+
         ++indicePCs;
         ++idThread;
     }
@@ -248,10 +259,14 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
         cacheCPU1[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                 /* Una vez cargado el bloque, se modifica el registro */
         cacheCPU1[5][bloqueCache] = M;                                          /* Se modifica el estado del bloque */
         cacheCPU1[4][bloqueCache] = numBloque;                                  /* Nuevo bloque en cache */
+
+        return true;
     }
+    return false;
 }
 
 void principalThread::fin()
 {
 
 }
+
