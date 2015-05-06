@@ -151,8 +151,10 @@ void *principalThread::procesador(void* PC)
             registros[IR[1]] = registros[IR[2]] - registros[IR[3]];     //Rx <- Ry - Rz
             break;
         case LW:
+            lw(IR[2], IR[1], IR[3], registros);                         //Rx <- M(n + (Ry))
             break;
         case SW:
+            sw(IR[2], IR[1], IR[3], registros);                         //M(n + (Ry)) <- Rx
             break;
         case BEQZ:
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
@@ -168,7 +170,6 @@ void *principalThread::procesador(void* PC)
     }
     if(vecInstrucciones[IP] == FIN){
         fin();
-
         pthread_exit(NULL);
     }
 }
