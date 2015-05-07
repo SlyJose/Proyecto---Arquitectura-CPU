@@ -17,6 +17,9 @@
 #include <pthread.h>
 #include <QMessageBox>
 #include <QtGui>
+#include <QPlainTextEdit>
+#include <QPushButton>
+#include <QVBoxLayout>
 
 
 //---------------------------------------------------------------
@@ -45,6 +48,7 @@ struct threadData{      /*!< Para pasar parametros a los threads. */
     void* ptr;
     int idThread;
     int numPC;
+    int* vecPrograma;
 };
 
 class principalThread
@@ -58,12 +62,12 @@ private:
      * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
      * @return void* ya que asi lo ocupa los pthreads.
      */
-    void* procesador(int id, int pc);
+    void* procesador(int id, int pc, int *vecI);
 
     static void* procesadorHelper(void* threadStruct);
 public:
 
-    principalThread(QString programa, int numProgramas); //constructor
+    principalThread(); //constructor
     ~principalThread(); //destructor
 
     /**
@@ -71,7 +75,7 @@ public:
      * Tambien va a llevar cuenta del reloj de la CPU y controlar la barrera ciclica.
      * @brief controlador
      */
-    void controlador();
+    void controlador(QString strInstrucciones, int numProgramas);
 
     /**
      * Retorna el miembro de la clase que lleva registro de las estadisticas que se recolectan despues de la
@@ -90,18 +94,9 @@ private:
     bool lw(int regX, int regY, int n, int* vecRegs);
     bool sw(int regX, int regY, int n, int *vecRegs);
 
-    void fin();
+    void fin(int idThread, int* registros);
 
-    //------------------------
-    //| Miembros de la clase |
-    //------------------------
-
-    int* vecInstrucciones;  /*!< Es el vector que va a tener las instrucciones de todos los programas.*/
-    int* vecPCs;            /*!< Vector con los indices donde inicia cada programa en el vector.*/
-    int numHilos;           /*!< Indica el numero de hilos que se van a simular. */
-    QString estadisticas;   /*!< En este String se va a llevar el registro de las estadisticas de todos los hilos. */
-
-
+    QString estadisticas;
     //---------------------------------------------
     //| Estructuras de datos para cada procesador |
     //---------------------------------------------

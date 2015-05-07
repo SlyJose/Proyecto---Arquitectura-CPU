@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QPlainTextEdit>
+#include <QGridLayout>
 
 #include <QtGui>
 

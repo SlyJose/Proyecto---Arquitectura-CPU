@@ -11,67 +11,15 @@
 
 #include "principalthread.h"
 
-principalThread::principalThread(QString programa, int numProgramas)
+principalThread::principalThread()
 {
-    
-    QString::iterator it;
-    QString strTemp;
-    int tamVec = 1;
-    numHilos = numProgramas;
-    
-    int indiceVecPCs = 1;
-    vecPCs = new int[numHilos];
-    vecPCs[0] = 0;      //Siempre el primer PC es la posicion 0.
-    
-    for(it = programa.begin(); it!=programa.end(); ++it){ /* Se convierten todas las instrucciones a forma de vector */
-        if(*it==' ' || *it=='\n'){
-            ++it;
-            strTemp.append('|');
-            ++tamVec;
-        }
-        if(*it=='@'){
-            strTemp.append('@');
-            ++it;
-        }
-        strTemp.append(*it);
-    }
-    
-    vecInstrucciones = new int[tamVec];
-    int j = 0;
-    int unaCifra = true;
-    int numCifras = 1;
-    bool signo = false;
-    QString numTemp;
-    bool ok;
-    
-    for(it = strTemp.begin(); it!=strTemp.end(); ++it){   /* Ciclo que lee cada digito y lo convierte a entero
-                                                            almacenandolo en el vector de instrucciones: vecInstrucciones */
-        
-        if(*it == '@'){
-            vecPCs[indiceVecPCs] = j+1;
-            ++indiceVecPCs;
-        }else{
-            if(*it == '|'){
-                vecInstrucciones[j] = numTemp.toInt(&ok, 10);
-                ++j;
-                unaCifra = true;
-                numCifras = 1;
-                signo = 1;
-                numTemp.clear();
-            }else{
-                numTemp.append(*it);
-            }
-        }
-    }
-    vecInstrucciones[j] = numTemp.toInt(&ok, 10); //agrega el ultimo
 
 }
 
 
 principalThread::~principalThread()
 {
-    delete[] vecInstrucciones;
-    delete[] vecPCs;
+
 }
 
 bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
@@ -124,7 +72,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     return false;
 }
 
-void* principalThread::procesador(int id, int pc)
+void* principalThread::procesador(int id, int pc, int* vecI)
 {
     int registros[32];   /* Los registros de cada procesador.*/
     registros[0] = 0;   //en el registro 0 siempre hay un 0
@@ -132,23 +80,23 @@ void* principalThread::procesador(int id, int pc)
     int IP = pc;   //IP = Instruction pointer
     int idHilo = id;
 
-    while(vecInstrucciones[IP] != FIN){ //mientras no encuentre una instruccion de finalizacion
+    while(vecI[IP] != FIN){ //mientras no encuentre una instruccion de finalizacion
 
         int IR[4];  //IR = instruction register
-        IR[0] = vecInstrucciones[IP];       //Codigo de instruccion
-        IR[1] = vecInstrucciones[IP+1];     //Primer parametro
-        IR[2] = vecInstrucciones[IP+2];     //Segundo parametro
-        IR[3] = vecInstrucciones[IP+3];     //Tercer parametro
+        IR[0] = vecI[IP];       //Codigo de instruccion
+        IR[1] = vecI[IP+1];     //Primer parametro
+        IR[2] = vecI[IP+2];     //Segundo parametro
+        IR[3] = vecI[IP+3];     //Tercer parametro
         IP += 4;    //Salta a la siguiente instruccion.
         switch(IR[0]){
         case DADDI:
-            registros[IR[1]] = registros[IR[2]] + IR[3];                //Rx <- Ry + n
+            registros[IR[2]] = registros[IR[1]] + IR[3];                //Rx <- Ry + n
             break;
         case DADD:
-            registros[IR[1]] = registros[IR[2]] + registros[IR[3]];     //Rx <- Ry + Rz
+            registros[IR[3]] = registros[IR[1]] + registros[IR[2]];     //Rx <- Ry + Rz
             break;
         case DSUB:
-            registros[IR[1]] = registros[IR[2]] - registros[IR[3]];     //Rx <- Ry - Rz
+            registros[IR[3]] = registros[IR[1]] - registros[IR[2]];     //Rx <- Ry - Rz
             break;
         case LW:
             lw(IR[2], IR[1], IR[3], registros);                         //Rx <- M(n + (Ry))
@@ -168,8 +116,8 @@ void* principalThread::procesador(int id, int pc)
             break;
         }
     }
-    if(vecInstrucciones[IP] == FIN){
-        fin();
+    if(vecI[IP] == FIN){
+        fin(idHilo, registros);
     }
 
     pthread_exit(NULL);
@@ -183,21 +131,73 @@ void *principalThread::procesadorHelper(void *threadStruct)
 
     struct threadData *td;
     td = (struct threadData*)threadStruct;
-    static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC);
-    return (NULL);
+    return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->vecPrograma);
 }
 
-void principalThread::controlador()
+void principalThread::controlador(QString strInstrucciones, int numProgramas)
 {
-   QPlainTextEdit *textEdit = new QPlainTextEdit;
-   QPushButton *quitButton = new QPushButton("&Aceptar");
-   QObject::connect(quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
-   QVBoxLayout *layout = new QVBoxLayout;
-   layout->addWidget(textEdit);
-   layout->addWidget(quitButton);
-   QWidget window;
-   window.setLayout(layout);
-   window.show();
+
+    int vecPCs[numProgramas];
+    QString::iterator it;
+    QString strTemp;
+    int tamVec = 1;
+    int indiceVecPCs = 1;
+    vecPCs[0] = 0;
+
+    for(it = strInstrucciones.begin(); it!=strInstrucciones.end(); ++it){
+        if(*it==' '|| *it == '\n'){
+            ++it;
+            strTemp.append('|');
+            ++tamVec;
+        }
+        if(*it == '@'){
+            strTemp.append('@');
+            ++it;
+        }
+        strTemp.append(*it);
+    }
+    int vecInstrucciones[tamVec];
+    int j=0;
+    bool unaCifra = true;
+    int numCifras = 1;
+    bool signo = false;
+    QString numTemp;
+    bool ok;
+
+    for(it = strTemp.begin(); it != strTemp.end(); ++it){
+        if(*it == '@'){
+            vecPCs[indiceVecPCs] = j+1;
+            ++indiceVecPCs;
+        }else{
+            if(*it == '|'){
+                vecInstrucciones[j]=numTemp.toInt(&ok, 10);
+                ++j;
+                unaCifra = true;
+                numCifras = 1;
+                signo = 1;
+                numTemp.clear();
+            }else{
+                numTemp.append(*it);
+            }
+        }
+    }
+
+    vecInstrucciones[j] = numTemp.toInt(&ok, 10);
+
+
+
+
+    // Para desplegar los hilos que estan corriendo.
+    QPlainTextEdit *textEdit = new QPlainTextEdit;
+    QPushButton *quitButton = new QPushButton("&Aceptar");
+    QObject::connect(quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->addWidget(textEdit);
+    layout->addWidget(quitButton);
+    QWidget window;
+    window.setLayout(layout);
+    window.show();
+    //----------------------------------------------------------------------
 
     int idThread = 1;
     struct threadData tD;
@@ -209,18 +209,19 @@ void principalThread::controlador()
     //| Para la segunda parte se debe hacer un vector de threads. |
     //-------------------------------------------------------------
 
-    for(int indicePCs = 0; indicePCs < numHilos; ++indicePCs){        
+    for(int indicePCs = 0; indicePCs < numProgramas; ++indicePCs){
         tD.idThread = idThread;
         tD.numPC = vecPCs[indicePCs];
+        tD.vecPrograma = vecInstrucciones;
 
-        hiloActual += "Empezo la ejecucion del hilo: "+tD.idThread+'\n';
+        hiloActual += "Empezo la ejecucion del hilo: "+(QString)tD.idThread+'\n';
 
 
         textEdit->setPlainText(hiloActual);
 
         int estadoThread = pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
 
-        hiloActual += "Hilo actual: " + tD.idThread;
+        hiloActual += "Hilo actual: " + (QString)tD.idThread;
         hiloActual += "  Estado: Finalizado\n";
 
         ++indicePCs;
@@ -289,8 +290,35 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
     return false;
 }
 
-void principalThread::fin()
+void principalThread::fin(int idThread, int *registros)
 {
+    //--------------------------------------------------------------------------------
+    //| Lo primero es pasar los bloques que quedaron en cache como 'M' a la memoria. |
+    //--------------------------------------------------------------------------------
 
+    //Bloqueo mi cache.
+    for(int i=0; i<4; ++i){
+        if(cacheCPU1[5][i] == M){   //el bloque esta modificado
+            //Intento bloquear la memoria, si no puedo entonces suelta tambien la cache.
+            for(int j=0; j<4; ++j){
+                memoryCPU1[j][cacheCPU1[4][i]] = cacheCPU1[j][i];
+            }
+            //Libero la memoria.
+        }
+    }
+    //Libero la cache.
+
+    estadisticas += "Datos del hilo "+(QString)idThread+'\n';
+    estadisticas += "Los registros quedaron como:\n";
+    for(int i=0; i<32; ++i){
+        estadisticas += "R["+(QString)i+"] = "+(QString)registros[i]+'\n';
+    }
+    estadisticas += "La cache de datos del procesador quedo asi:\n";
+    for(int i=0; i<6; ++i){
+        estadisticas += "Bloque "+(QString)i+":\n";
+        for(int j=0; j<4; ++j){
+            estadisticas += cacheCPU1[i][j] + '-';
+        }
+        estadisticas += '\n';
+    }
 }
-

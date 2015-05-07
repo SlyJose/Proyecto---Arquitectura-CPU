@@ -66,9 +66,10 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
               ++numProgramas;
          }
      }while(continuar);
-     ui->textResult->setText(hileraArchivo);
-     principalThread programaPrincipal(hileraArchivo, numProgramas);
-
+     //ui->textResult->setText(hileraArchivo);
+     principalThread programaPrincipal;
+     programaPrincipal.controlador(hileraArchivo, numProgramas);
+     ui->textResult->setText(programaPrincipal.getEstadisticas());
 }
 
 
