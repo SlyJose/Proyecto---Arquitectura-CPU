@@ -68,6 +68,7 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
      }while(continuar);
      ui->textResult->setText(hileraArchivo);
      principalThread programaPrincipal(hileraArchivo, numProgramas);
+
 }
 
 

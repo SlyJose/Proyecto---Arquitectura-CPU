@@ -189,22 +189,46 @@ void *principalThread::procesadorHelper(void *threadStruct)
 
 void principalThread::controlador()
 {
+   QPlainTextEdit *textEdit = new QPlainTextEdit;
+   QPushButton *quitButton = new QPushButton("&Aceptar");
+   QObject::connect(quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
+   QVBoxLayout *layout = new QVBoxLayout;
+   layout->addWidget(textEdit);
+   layout->addWidget(quitButton);
+   QWidget window;
+   window.setLayout(layout);
+   window.show();
+
     int idThread = 1;
     struct threadData tD;
     pthread_t hilo;
+    QString hiloActual = "";
+
+
     //-------------------------------------------------------------
     //| Para la segunda parte se debe hacer un vector de threads. |
     //-------------------------------------------------------------
 
-    for(int indicePCs = 0; indicePCs < numHilos; ++indicePCs){
+    for(int indicePCs = 0; indicePCs < numHilos; ++indicePCs){        
         tD.idThread = idThread;
         tD.numPC = vecPCs[indicePCs];
 
+        hiloActual += "Empezo la ejecucion del hilo: "+tD.idThread+'\n';
+
+
+        textEdit->setPlainText(hiloActual);
+
         int estadoThread = pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
+
+        hiloActual += "Hilo actual: " + tD.idThread;
+        hiloActual += "  Estado: Finalizado\n";
 
         ++indicePCs;
         ++idThread;
+
+        textEdit->setPlainText(hiloActual);
     }
+
 }
 
 QString principalThread::getEstadisticas()
