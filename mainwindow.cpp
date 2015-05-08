@@ -66,8 +66,8 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
          }
      }while(continuar);
      //ui->textResult->setText(hileraArchivo);
-     principalThread programaPrincipal;
-     QString estadisticas = programaPrincipal.controlador(hileraArchivo, numProgramas);
+     principalThread programaPrincipal(hileraArchivo, numProgramas);
+     QString estadisticas = programaPrincipal.controlador();
      ui->textResult->setText(estadisticas);
 }
 

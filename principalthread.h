@@ -47,11 +47,6 @@ struct threadData{      /*!< Para pasar parametros a los threads. */
     void* ptr;
     int idThread;
     int numPC;
-    int* vecPrograma;
-    int** cacheCPU;
-    int** memoryCPU;
-    QString data;
-
 };
 
 class principalThread
@@ -65,12 +60,12 @@ private:
      * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
      * @return void* ya que asi lo ocupa los pthreads.
      */
-    void* procesador(int id, int pc, int *vecI, int **cache, int **memory, QString estadisticas);
+    void* procesador(int id, int pc);
 
     static void* procesadorHelper(void* threadStruct);
 public:
 
-    principalThread(); //constructor
+    principalThread(QString programa, int numHilos); //constructor
     ~principalThread(); //destructor
 
     /**
@@ -78,7 +73,7 @@ public:
      * Tambien va a llevar cuenta del reloj de la CPU y controlar la barrera ciclica.
      * @brief controlador
      */
-    QString controlador(QString strInstrucciones, int numProgramas);
+    QString controlador();
 
 
 private:
@@ -87,10 +82,16 @@ private:
     //| Funciones privadas de la clase. |
     //-----------------------------------
 
-    bool lw(int regX, int regY, int n, int* vecRegs, int** cache, int** memory);
-    bool sw(int regX, int regY, int n, int *vecRegs, int** cache, int** memory);
+    bool lw(int regX, int regY, int n, int* vecRegs);
+    bool sw(int regX, int regY, int n, int *vecRegs);
 
-    void fin(int idThread, int* registros, int **cache, int **memory, QString estadisticas);
+    void fin(int idThread, int* registros);
+
+    //-------------------------
+    //| Miembros de la clase. |
+    //-------------------------
+    int numThreads;
+    int* vecPCs;
 
 };
 
