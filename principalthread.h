@@ -49,7 +49,11 @@ struct threadData{      /*!< Para pasar parametros a los threads. */
     int idThread;
     int numPC;
     int* vecPrograma;
+
 };
+
+extern int cache[6][4];
+extern int memory[4][32];
 
 class principalThread
 {
@@ -97,13 +101,6 @@ private:
     void fin(int idThread, int* registros);
 
     QString estadisticas;
-    //---------------------------------------------
-    //| Estructuras de datos para cada procesador |
-    //---------------------------------------------
-
-    int memoryCPU1[4][16];
-    int cacheCPU1[6][4];
-    int directCPU1[4][4];
 
 };
 

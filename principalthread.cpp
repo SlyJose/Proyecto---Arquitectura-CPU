@@ -31,14 +31,14 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     int indiceCache = 0;
     //Hay que bloquear el recurso critico (la cache)
     while(indiceCache < 4){
-        if(cacheCPU1[4][indiceCache] == numBloque){   //Encontre el bloque en mi cache
+        if(cache[4][indiceCache] == numBloque){   //Encontre el bloque en mi cache
 
             //--------------------------------------------------------------------------------
             //| * Tengo que revisar el estado del bloque (no se implementa en esta parte).   |
             //| * Dura 2 ciclos de reloj haciendo esto.                                      |
             //--------------------------------------------------------------------------------
 
-            vecRegs[regX] = cacheCPU1[(dirPrev%16)/4][bloqueCache]; // Pone la palabra en el registro.
+            vecRegs[regX] = cache[(dirPrev%16)/4][bloqueCache]; // Pone la palabra en el registro.
             //Libero el recurso critico (la cache)
             return true;                        //Retorna true ya que tuvo exito con el lw.
         }
@@ -52,19 +52,19 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
         //| * Intento bloquear el recurso critico (mi memoria). Si no puedo entonces libero la cache tambien.   |
         //-------------------------------------------------------------------------------------------------------
 
-        if(cacheCPU1[5][bloqueCache] == M){ // El bloque al que le voy a caer encima en cache esta modificado, tengo que pasarlo a memoria. (Write back)
-            int bloqueMem = cacheCPU1[4][bloqueCache];
+        if(cache[5][bloqueCache] == M){ // El bloque al que le voy a caer encima en cache esta modificado, tengo que pasarlo a memoria. (Write back)
+            int bloqueMem = cache[4][bloqueCache];
             for(int i=0; i<4; ++i){
-                memoryCPU1[i][bloqueMem] = cacheCPU1[i][bloqueCache];   // Hago la copia del bloque modificado en cache a memoria.
+                memory[i][bloqueMem] = cache[i][bloqueCache];   // Hago la copia del bloque modificado en cache a memoria.
             }
         }
         for(int i=0; i<4; ++i){ //Write allocate
-            cacheCPU1[i][bloqueCache] = memoryCPU1[i][numBloque]; // Subo el bloque de memoria a cache.
+            cache[i][bloqueCache] = memory[i][numBloque]; // Subo el bloque de memoria a cache.
         }
         // Libero el semaforo de la memoria
-        cacheCPU1[4][bloqueCache] = numBloque;    // Le pone el identificador al bloque en cache.
-        cacheCPU1[5][bloqueCache] = C;              // Pone el estado del bloque como compartido.
-        vecRegs[regX] = cacheCPU1[(dirPrev%16)/4][bloqueCache];     // Pone la palabra en el registro.
+        cache[4][bloqueCache] = numBloque;    // Le pone el identificador al bloque en cache.
+        cache[5][bloqueCache] = C;              // Pone el estado del bloque como compartido.
+        vecRegs[regX] = cache[(dirPrev%16)/4][bloqueCache];     // Pone la palabra en el registro.
         //Libero el recurso critico (la cache)
         return true;
     }
@@ -87,7 +87,9 @@ void* principalThread::procesador(int id, int pc, int* vecI)
         IR[1] = vecI[IP+1];     //Primer parametro
         IR[2] = vecI[IP+2];     //Segundo parametro
         IR[3] = vecI[IP+3];     //Tercer parametro
+
         IP += 4;    //Salta a la siguiente instruccion.
+
         switch(IR[0]){
         case DADDI:
             registros[IR[2]] = registros[IR[1]] + IR[3];                //Rx <- Ry + n
@@ -125,10 +127,6 @@ void* principalThread::procesador(int id, int pc, int* vecI)
 
 void *principalThread::procesadorHelper(void *threadStruct)
 {
-    //---------------
-    //|     FEO     |
-    //---------------
-
     struct threadData *td;
     td = (struct threadData*)threadStruct;
     return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->vecPrograma);
@@ -182,12 +180,20 @@ void principalThread::controlador(QString strInstrucciones, int numProgramas)
         }
     }
 
-    vecInstrucciones[j] = numTemp.toInt(&ok, 10);
 
+    for(int i=0; i<6; ++i){
+        for(int j=0; j<4; ++j){
+            extern int cache[i][j] = 0;
+        }
+    }
 
+    for(int i=0; i<4; ++i){
+        for(int j=0; j<32; ++j){
+            extern int memory[i][j] = 0;
+        }
+    }
 
-
-    // Para desplegar los hilos que estan corriendo.
+    /*---------------Para desplegar los hilos que estan corriendo.-------------- */
     QPlainTextEdit *textEdit = new QPlainTextEdit;
     QPushButton *quitButton = new QPushButton("&Aceptar");
     QObject::connect(quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
@@ -197,7 +203,7 @@ void principalThread::controlador(QString strInstrucciones, int numProgramas)
     QWidget window;
     window.setLayout(layout);
     window.show();
-    //----------------------------------------------------------------------
+    /*---------------------------------------------------------------------------*/
 
     int idThread = 1;
     struct threadData tD;
@@ -249,41 +255,34 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
     int contador = 0;
     while(vacio && contador < 4){                           /* Se da lectura en la fila 4 del cache para buscar la etiqueta del bloque*/
         
-        if(cacheCPU1[4][contador] == numBloque){          /* El bloque si se encuentra en cache */
+        if(cache[4][contador] == numBloque){          /* El bloque si se encuentra en cache */
             vacio = false;
             
-            cacheCPU1[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];   /* Se almacena el contenido del registro en la posicion de la cache */
-            cacheCPU1[5][bloqueCache] = M;                            /* Se modifica el estado del bloque */
-
-            for(int i = 0; i < 4; ++i){                              /* Se modifica el estado del bloque en el directorio, estado M: modificado */
-                if(directCPU1[i][0] == bloqueCache){                 /* Se busca la etiqueta del bloque en el directorio */
-                    directCPU1[i][1] = M;                            /* Se cambia el estado y se le indica al CPU 1 */
-                    directCPU1[i][2] = 1;
-                }
-            }
+            cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];   /* Se almacena el contenido del registro en la posicion de la cache */
+            cache[5][bloqueCache] = M;                            /* Se modifica el estado del bloque */
         }
         ++contador;
     }
     
     if(vacio){                                               /* El bloque no se encuentra en cache y debe cargarse de memoria */
 
-        if(cacheCPU1[5][bloqueCache] == M){                 /* El bloque esta en estado M y debe guardarse en memoria */
+        if(cache[5][bloqueCache] == M){                 /* El bloque esta en estado M y debe guardarse en memoria */
             for(int i = 0; i < 4; ++i){
-                memoryCPU1[i][cacheCPU1[4][bloqueCache]] = cacheCPU1[i][bloqueCache];     /* Se copia cada estado del bloque en cache a memoria */
+                memory[i][cache[4][bloqueCache]] = cache[i][bloqueCache];     /* Se copia cada estado del bloque en cache a memoria */
             }
             for(int j = 0; j < 4; ++j){
-                cacheCPU1[j][bloqueCache] = memoryCPU1[j][numBloque];       /* Se copia el bloque requerido de memoria a cache */
+                cache[j][bloqueCache] = memory[j][numBloque];       /* Se copia el bloque requerido de memoria a cache */
             }
         }else{
-            if(cacheCPU1[5][bloqueCache] == C){                             /* El bloque esta compartido */
+            if(cache[5][bloqueCache] == C){                             /* El bloque esta compartido */
                 for(int j = 0; j < 4; ++j){
-                    cacheCPU1[j][bloqueCache] = memoryCPU1[j][numBloque];       /* Se copia el bloque requerido de memoria a cache */
+                    cache[j][bloqueCache] = memory[j][numBloque];       /* Se copia el bloque requerido de memoria a cache */
                 }
             }
         }
-        cacheCPU1[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                 /* Una vez cargado el bloque, se modifica el registro */
-        cacheCPU1[5][bloqueCache] = M;                                          /* Se modifica el estado del bloque */
-        cacheCPU1[4][bloqueCache] = numBloque;                                  /* Nuevo bloque en cache */
+        cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                 /* Una vez cargado el bloque, se modifica el registro */
+        cache[5][bloqueCache] = M;                                          /* Se modifica el estado del bloque */
+        cache[4][bloqueCache] = numBloque;                                  /* Nuevo bloque en cache */
 
         return true;
     }
@@ -298,10 +297,10 @@ void principalThread::fin(int idThread, int *registros)
 
     //Bloqueo mi cache.
     for(int i=0; i<4; ++i){
-        if(cacheCPU1[5][i] == M){   //el bloque esta modificado
+        if(cache[5][i] == M){   //el bloque esta modificado
             //Intento bloquear la memoria, si no puedo entonces suelta tambien la cache.
             for(int j=0; j<4; ++j){
-                memoryCPU1[j][cacheCPU1[4][i]] = cacheCPU1[j][i];
+                memory[j][cache[4][i]] = cache[j][i];
             }
             //Libero la memoria.
         }
@@ -317,7 +316,7 @@ void principalThread::fin(int idThread, int *registros)
     for(int i=0; i<6; ++i){
         estadisticas += "Bloque "+(QString)i+":\n";
         for(int j=0; j<4; ++j){
-            estadisticas += cacheCPU1[i][j] + '-';
+            estadisticas += cache[i][j] + '-';
         }
         estadisticas += '\n';
     }
