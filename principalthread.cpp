@@ -77,11 +77,12 @@ principalThread::principalThread(QString programa, int numHilos)
         for(int j=0; j<4; ++j){
             if(i==4){
                 cache[i][j] = -1;
-            }
-            if(i==5){
-                cache[i][j] = I;
             }else{
-                cache[i][j] = 0;
+                if(i==5){
+                    cache[i][j] = I;
+                }else{
+                    cache[i][j] = 0;
+                }
             }
         }
     }
@@ -195,7 +196,8 @@ void* principalThread::procesador(int id, int pc)
     if(vecPrograma[IP] == FIN){
         fin(idHilo, registros);
     }
-    pthread_mutex_unlock(&mutClock);
+    //pthread_mutex_unlock(&mutClock);
+
     pthread_exit(NULL);
 }
 
@@ -209,7 +211,7 @@ void *principalThread::procesadorHelper(void *threadStruct)
 QString principalThread::controlador()
 {
 
-    /*---------------Para desplegar los hilos que estan corriendo.-------------- */
+    /*---------------Para desplegar los hilos que estan corriendo.--------------*/
     QPlainTextEdit *textEdit = new QPlainTextEdit;
     QPushButton *quitButton = new QPushButton("&Aceptar");
     QObject::connect(quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
@@ -241,7 +243,7 @@ QString principalThread::controlador()
 
         pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
 
-        pthread_mutex_lock(&mutClock);   //Se espera a que termine el hilo del procesador 1.
+        pthread_join(hilo, NULL);
         hiloActual += "Hilo actual: " + QString::number(tD.idThread);
         hiloActual += "  Estado: Finalizado\n";
 
@@ -250,6 +252,7 @@ QString principalThread::controlador()
 
         textEdit->setPlainText(hiloActual);
     }
+
     estadisticas += "La memoria del procesador quedo como:\n";
     for(int i=0; i<32; ++i){
         estadisticas += "Bloque de memoria "+QString::number(i)+'\n';
