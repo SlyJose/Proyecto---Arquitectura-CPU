@@ -50,6 +50,7 @@ struct threadData{      /*!< Para pasar parametros a los threads. */
     int* vecPrograma;
     int** cacheCPU;
     int** memoryCPU;
+    QString data;
 
 };
 
@@ -64,7 +65,7 @@ private:
      * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
      * @return void* ya que asi lo ocupa los pthreads.
      */
-    void* procesador(int id, int pc, int *vecI, int **cache, int **memory);
+    void* procesador(int id, int pc, int *vecI, int **cache, int **memory, QString estadisticas);
 
     static void* procesadorHelper(void* threadStruct);
 public:
@@ -77,15 +78,8 @@ public:
      * Tambien va a llevar cuenta del reloj de la CPU y controlar la barrera ciclica.
      * @brief controlador
      */
-    void controlador(QString strInstrucciones, int numProgramas);
+    QString controlador(QString strInstrucciones, int numProgramas);
 
-    /**
-     * Retorna el miembro de la clase que lleva registro de las estadisticas que se recolectan despues de la
-     * ejecucion de cada hilo y al finalizar todo el programa.
-     * @brief getEstadisticas
-     * @return QString con las estadisticas al final de la simulacion.
-     */
-    QString getEstadisticas();
 
 private:
 
@@ -96,9 +90,7 @@ private:
     bool lw(int regX, int regY, int n, int* vecRegs, int** cache, int** memory);
     bool sw(int regX, int regY, int n, int *vecRegs, int** cache, int** memory);
 
-    void fin(int idThread, int* registros, int **cache, int **memory);
-
-    QString estadisticas;
+    void fin(int idThread, int* registros, int **cache, int **memory, QString estadisticas);
 
 };
 

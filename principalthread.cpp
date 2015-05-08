@@ -72,7 +72,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, int **cache, i
     return false;
 }
 
-void* principalThread::procesador(int id, int pc, int* vecI, int** cache, int** memory)
+void* principalThread::procesador(int id, int pc, int* vecI, int** cache, int** memory, QString estadisticas)
 {
     int registros[32];   /* Los registros de cada procesador.*/
     registros[0] = 0;   //en el registro 0 siempre hay un 0
@@ -119,7 +119,7 @@ void* principalThread::procesador(int id, int pc, int* vecI, int** cache, int** 
         }
     }
     if(vecI[IP] == FIN){
-        fin(idHilo, registros, cache, memory);
+        fin(idHilo, registros, cache, memory, estadisticas);
     }
 
     pthread_exit(NULL);
@@ -129,10 +129,10 @@ void *principalThread::procesadorHelper(void *threadStruct)
 {
     struct threadData *td;
     td = (struct threadData*)threadStruct;
-    return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->vecPrograma, td->cacheCPU, td->memoryCPU);
+    return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->vecPrograma, td->cacheCPU, td->memoryCPU, td->data);
 }
 
-void principalThread::controlador(QString strInstrucciones, int numProgramas)
+QString principalThread::controlador(QString strInstrucciones, int numProgramas)
 {
 
     int vecPCs[numProgramas];
@@ -218,14 +218,18 @@ void principalThread::controlador(QString strInstrucciones, int numProgramas)
             tD.memoryCPU[i][j] = 0;
         }
     }
+
     //-------------------------------------------------------------
     //| Para la segunda parte se debe hacer un vector de threads. |
     //-------------------------------------------------------------
+
+    QString estadisticas;
 
     for(int indicePCs = 0; indicePCs < numProgramas; ++indicePCs){
         tD.idThread = idThread;
         tD.numPC = vecPCs[indicePCs];
         tD.vecPrograma = vecInstrucciones;
+        tD.data = estadisticas;
 
         hiloActual += "Empezo la ejecucion del hilo: "+(QString)tD.idThread+'\n';
 
@@ -243,10 +247,6 @@ void principalThread::controlador(QString strInstrucciones, int numProgramas)
         textEdit->setPlainText(hiloActual);
     }
 
-}
-
-QString principalThread::getEstadisticas()
-{
     return estadisticas;
 }
 
@@ -296,7 +296,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, int **cache, i
     return false;
 }
 
-void principalThread::fin(int idThread, int *registros, int** cache, int** memory)
+void principalThread::fin(int idThread, int *registros, int** cache, int** memory, QString estadisticas)
 {
     //--------------------------------------------------------------------------------
     //| Lo primero es pasar los bloques que quedaron en cache como 'M' a la memoria. |
