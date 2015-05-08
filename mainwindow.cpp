@@ -27,7 +27,6 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-
 void MainWindow::on_pushButton_clicked()                        /* Boton que permite abrir ventana de busqueda de archivos */
 {
 

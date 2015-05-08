@@ -22,7 +22,7 @@ principalThread::~principalThread()
 
 }
 
-bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
+bool principalThread::lw(int regX, int regY, int n, int *vecRegs, int **cache, int **memory)
 {
     int dirPrev = n + regY;
     int numBloque = dirPrev/16;
@@ -72,7 +72,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     return false;
 }
 
-void* principalThread::procesador(int id, int pc, int* vecI)
+void* principalThread::procesador(int id, int pc, int* vecI, int** cache, int** memory)
 {
     int registros[32];   /* Los registros de cada procesador.*/
     registros[0] = 0;   //en el registro 0 siempre hay un 0
@@ -101,10 +101,10 @@ void* principalThread::procesador(int id, int pc, int* vecI)
             registros[IR[3]] = registros[IR[1]] - registros[IR[2]];     //Rx <- Ry - Rz
             break;
         case LW:
-            lw(IR[2], IR[1], IR[3], registros);                         //Rx <- M(n + (Ry))
+            lw(IR[2], IR[1], IR[3], registros, cache, memory);                         //Rx <- M(n + (Ry))
             break;
         case SW:
-            sw(IR[2], IR[1], IR[3], registros);                         //M(n + (Ry)) <- Rx
+            sw(IR[2], IR[1], IR[3], registros, cache, memory);                         //M(n + (Ry)) <- Rx
             break;
         case BEQZ:
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
@@ -119,7 +119,7 @@ void* principalThread::procesador(int id, int pc, int* vecI)
         }
     }
     if(vecI[IP] == FIN){
-        fin(idHilo, registros);
+        fin(idHilo, registros, cache, memory);
     }
 
     pthread_exit(NULL);
@@ -129,7 +129,7 @@ void *principalThread::procesadorHelper(void *threadStruct)
 {
     struct threadData *td;
     td = (struct threadData*)threadStruct;
-    return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->vecPrograma);
+    return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->vecPrograma, td->cacheCPU, td->memoryCPU);
 }
 
 void principalThread::controlador(QString strInstrucciones, int numProgramas)
@@ -180,19 +180,6 @@ void principalThread::controlador(QString strInstrucciones, int numProgramas)
         }
     }
 
-
-    for(int i=0; i<6; ++i){
-        for(int j=0; j<4; ++j){
-            extern int cache[i][j] = 0;
-        }
-    }
-
-    for(int i=0; i<4; ++i){
-        for(int j=0; j<32; ++j){
-            extern int memory[i][j] = 0;
-        }
-    }
-
     /*---------------Para desplegar los hilos que estan corriendo.-------------- */
     QPlainTextEdit *textEdit = new QPlainTextEdit;
     QPushButton *quitButton = new QPushButton("&Aceptar");
@@ -210,7 +197,27 @@ void principalThread::controlador(QString strInstrucciones, int numProgramas)
     pthread_t hilo;
     QString hiloActual = "";
 
+    tD.cacheCPU = new int*[6];
+    for(int i=0; i<6; ++i){
+        tD.cacheCPU[i] = new int[4];
+    }
 
+    for(int i=0; i<6; ++i){
+        for(int j=0; j<4; ++j){
+            tD.cacheCPU[i][j] = 0;
+        }
+    }
+
+    tD.memoryCPU = new int*[4];
+    for(int i=0; i<4; ++i){
+        tD.memoryCPU[i] = new int[32];
+    }
+
+    for(int i=0; i<4; ++i){
+        for(int j=0; j<32; ++j){
+            tD.memoryCPU[i][j] = 0;
+        }
+    }
     //-------------------------------------------------------------
     //| Para la segunda parte se debe hacer un vector de threads. |
     //-------------------------------------------------------------
@@ -244,7 +251,7 @@ QString principalThread::getEstadisticas()
 }
 
 
-bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Funcion que realiza el store */
+bool principalThread::sw(int regX, int regY, int n, int *vecRegs, int **cache, int **memory){         /* Funcion que realiza el store */
     
     int dirPrev = n + regY;
     int numBloque = dirPrev / 16;
@@ -289,7 +296,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
     return false;
 }
 
-void principalThread::fin(int idThread, int *registros)
+void principalThread::fin(int idThread, int *registros, int** cache, int** memory)
 {
     //--------------------------------------------------------------------------------
     //| Lo primero es pasar los bloques que quedaron en cache como 'M' a la memoria. |

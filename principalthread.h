@@ -21,7 +21,6 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-
 //---------------------------------------------------------------
 //| Los tipos de instrucciones que puede simular el procesador. |
 //---------------------------------------------------------------
@@ -49,11 +48,10 @@ struct threadData{      /*!< Para pasar parametros a los threads. */
     int idThread;
     int numPC;
     int* vecPrograma;
+    int** cacheCPU;
+    int** memoryCPU;
 
 };
-
-extern int cache[6][4];
-extern int memory[4][32];
 
 class principalThread
 {
@@ -66,7 +64,7 @@ private:
      * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
      * @return void* ya que asi lo ocupa los pthreads.
      */
-    void* procesador(int id, int pc, int *vecI);
+    void* procesador(int id, int pc, int *vecI, int **cache, int **memory);
 
     static void* procesadorHelper(void* threadStruct);
 public:
@@ -95,10 +93,10 @@ private:
     //| Funciones privadas de la clase. |
     //-----------------------------------
 
-    bool lw(int regX, int regY, int n, int* vecRegs);
-    bool sw(int regX, int regY, int n, int *vecRegs);
+    bool lw(int regX, int regY, int n, int* vecRegs, int** cache, int** memory);
+    bool sw(int regX, int regY, int n, int *vecRegs, int** cache, int** memory);
 
-    void fin(int idThread, int* registros);
+    void fin(int idThread, int* registros, int **cache, int **memory);
 
     QString estadisticas;
 
