@@ -16,6 +16,7 @@ int memory[4][32];
 int cache[6][4];
 int* vecPrograma;
 QString estadisticas;
+pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
 /*-----------------------------*/
 
 principalThread::principalThread(QString programa, int numHilos)
@@ -102,7 +103,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     int indiceCache = 0;
     //Hay que bloquear el recurso critico (la cache)
     while(indiceCache < 4){
-        if(cache[4][indiceCache] == numBloque){   //Encontre el bloque en mi cache
+        if(cache[4][indiceCache] == numBloque && cache[5][bloqueCache] != I){   //Encontre el bloque en mi cache
 
             //--------------------------------------------------------------------------------
             //| * Tengo que revisar el estado del bloque (no se implementa en esta parte).   |
@@ -194,7 +195,7 @@ void* principalThread::procesador(int id, int pc)
     if(vecPrograma[IP] == FIN){
         fin(idHilo, registros);
     }
-
+    pthread_mutex_unlock(&mutClock);
     pthread_exit(NULL);
 }
 
@@ -233,21 +234,29 @@ QString principalThread::controlador()
         tD.idThread = idThread;
         tD.numPC = vecPCs[indicePCs];
 
-        hiloActual += "Empezo la ejecucion del hilo: "+(QString)tD.idThread+'\n';
+        hiloActual += "Empezo la ejecucion del hilo: "+QString::number(tD.idThread)+'\n';
 
 
         textEdit->setPlainText(hiloActual);
 
         pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
 
-        //pthread_join(hilo, &res);
-        hiloActual += "Hilo actual: " + (QString)tD.idThread;
+        pthread_mutex_lock(&mutClock);   //Se espera a que termine el hilo del procesador 1.
+        hiloActual += "Hilo actual: " + QString::number(tD.idThread);
         hiloActual += "  Estado: Finalizado\n";
 
         ++indicePCs;
         ++idThread;
 
         textEdit->setPlainText(hiloActual);
+    }
+    estadisticas += "La memoria del procesador quedo como:\n";
+    for(int i=0; i<32; ++i){
+        estadisticas += "Bloque de memoria "+QString::number(i)+'\n';
+        for(int j=0; j<4; ++j){
+            estadisticas += '['+QString::number(memory[j][i])+"]-";
+        }
+        estadisticas += '\n';
     }
 
     return estadisticas;
@@ -265,7 +274,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
     int contador = 0;
     while(vacio && contador < 4){                           /* Se da lectura en la fila 4 del cache para buscar la etiqueta del bloque*/
         
-        if(cache[4][contador] == numBloque){          /* El bloque si se encuentra en cache */
+        if(cache[4][contador] == numBloque && cache[5][bloqueCache] != I){          /* El bloque si se encuentra en cache */
             vacio = false;
             
             cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];   /* Se almacena el contenido del registro en la posicion de la cache */
@@ -312,16 +321,28 @@ void principalThread::fin(int idThread, int *registros)
     }
     //Libero la cache.
 
-    estadisticas += "Datos del hilo "+(QString)idThread+'\n';
+    estadisticas += "Datos del hilo "+QString::number(idThread)+'\n';
     estadisticas += "Los registros quedaron como:\n";
     for(int i=0; i<32; ++i){
-        estadisticas += "R["+(QString)i+"] = "+(QString)registros[i]+'\n';
+        estadisticas += "R["+QString::number(i)+"] = "+QString::number(registros[i])+'\n';
     }
     estadisticas += "La cache de datos del procesador quedo asi:\n";
     for(int i=0; i<6; ++i){
-        estadisticas += "Bloque "+(QString)i+":\n";
+        QChar estado;
+        switch(cache[5][i]){
+        case I:
+            estado = 'I';
+            break;
+        case M:
+            estado = 'M';
+            break;
+        case C:
+            estado = 'C';
+        }
+
+        estadisticas += "Bloque "+QString::number(i)+" estado "+estado+":\n";
         for(int j=0; j<4; ++j){
-            estadisticas += cache[i][j] + '-';
+            estadisticas += QString::number(cache[i][j]) + '-';
         }
         estadisticas += '\n';
     }
