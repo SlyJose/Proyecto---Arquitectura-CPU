@@ -75,7 +75,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, int **cache, i
 void* principalThread::procesador(int id, int pc, int* vecI, int** cache, int** memory, QString estadisticas)
 {
     int registros[32];   /* Los registros de cada procesador.*/
-    registros[0] = 0;   //en el registro 0 siempre hay un 0
+    for(int i=0; i<32; ++i){
+        registros[i] = 0;
+    }
     
     int IP = pc;   //IP = Instruction pointer
     int idHilo = id;
@@ -204,7 +206,15 @@ QString principalThread::controlador(QString strInstrucciones, int numProgramas)
 
     for(int i=0; i<6; ++i){
         for(int j=0; j<4; ++j){
-            tD.cacheCPU[i][j] = 0;
+            if(i == 4){
+                tD.cacheCPU[i][j] = -1;
+            }else{
+                if(i == 5){
+                    tD.cacheCPU[i][j] = I;
+                }else{
+                    tD.cacheCPU[i][j] = 0;
+                }
+            }
         }
     }
 
@@ -224,6 +234,7 @@ QString principalThread::controlador(QString strInstrucciones, int numProgramas)
     //-------------------------------------------------------------
 
     QString estadisticas;
+    //void* res;
 
     for(int indicePCs = 0; indicePCs < numProgramas; ++indicePCs){
         tD.idThread = idThread;
@@ -238,6 +249,7 @@ QString principalThread::controlador(QString strInstrucciones, int numProgramas)
 
         int estadoThread = pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
 
+        //pthread_join(hilo, &res);
         hiloActual += "Hilo actual: " + (QString)tD.idThread;
         hiloActual += "  Estado: Finalizado\n";
 
