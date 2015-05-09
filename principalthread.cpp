@@ -97,7 +97,7 @@ principalThread::~principalThread()
 
 bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
 {
-    int dirPrev = n + regY;
+    int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev/16;
     int bloqueCache = numBloque%4;  /* Numero del bloque a buscar en el cache*/
     
@@ -268,7 +268,7 @@ QString principalThread::controlador()
 
 bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Funcion que realiza el store */
     
-    int dirPrev = n + regY;
+    int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev / 16;
     int bloqueCache = numBloque % 4;        /* Se obtiene el numero del bloque a buscar en cache */
     
