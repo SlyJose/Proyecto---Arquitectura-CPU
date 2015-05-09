@@ -18,6 +18,8 @@
 #include <iostream>
 #include <QDebug>
 #include <QMessageBox>
+#include <time.h>
+
 
 #include "principalthread.h"
 #include "info.h"
@@ -42,8 +44,11 @@ private slots:
     void on_aboutButton_clicked();
 
 private:
+
+    void espera();
     Ui::MainWindow *ui;
     Info* vInfo;
+
 };
 
 #endif // MAINWINDOW_H

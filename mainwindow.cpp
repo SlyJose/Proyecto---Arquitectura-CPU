@@ -37,38 +37,51 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
     QString nuevaHileraArchivo;
     int numProgramas = 0;
 
-     if (newFile.open (QIODevice::ReadOnly | QIODevice::Text)) {
-             hileraArchivo = newFile.readAll();                     /* hileraArchivo almacena todo el archivo */
-             ++numProgramas;
-     }
+    if (newFile.open (QIODevice::ReadOnly | QIODevice::Text)) {
+        hileraArchivo = newFile.readAll();                     /* hileraArchivo almacena todo el archivo */
+        ++numProgramas;
+    }
 
-     bool continuar = false;
+    bool continuar = false;
 
-     do{
-         QMessageBox cargarNuevo;
-         cargarNuevo.setText("¿Desea cargar un nuevo archivo para el CPU?");
-         cargarNuevo.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-         cargarNuevo.setDefaultButton(QMessageBox::No);
-         int result = cargarNuevo.exec();
-         if(result == 65536){                                   /* Se verifica si el usuario desea cargar mas archivos */
-             continuar = false;
+    do{
+        QMessageBox cargarNuevo;
+        cargarNuevo.setText("¿Desea cargar un nuevo archivo para el CPU?");
+        cargarNuevo.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        cargarNuevo.setDefaultButton(QMessageBox::No);
+        int result = cargarNuevo.exec();
+        if(result == 65536){                                   /* Se verifica si el usuario desea cargar mas archivos */
+            continuar = false;
 
-         }else{                                                 /* El usuario si desea cargar nuevos archivos */
-             continuar = true;
-             QString nuevaRutaArchivo = QFileDialog::getOpenFileName (this);
+        }else{                                                 /* El usuario si desea cargar nuevos archivos */
+            continuar = true;
+            QString nuevaRutaArchivo = QFileDialog::getOpenFileName (this);
 
-             QFile file(nuevaRutaArchivo);
+            QFile file(nuevaRutaArchivo);
 
-              if (file.open (QIODevice::ReadOnly | QIODevice::Text)) {
-                      nuevaHileraArchivo = file.readAll();
-              }
-              hileraArchivo = hileraArchivo + "@" + nuevaHileraArchivo;
-              ++numProgramas;
-         }
-     }while(continuar);
-     principalThread programaPrincipal(hileraArchivo, numProgramas);
-     QString estadisticas = programaPrincipal.controlador();
-     ui->textResult->setText(estadisticas);
+            if (file.open (QIODevice::ReadOnly | QIODevice::Text)) {
+                nuevaHileraArchivo = file.readAll();
+            }
+            hileraArchivo = hileraArchivo + "@" + nuevaHileraArchivo;
+            ++numProgramas;
+        }
+    }while(continuar);
+
+    for(int i=1; i<=numProgramas; ++i){
+        QString hActual = "Hilo "+QString::number(i)+" en ejecucion.";
+        ui->hiloActual->setText(hActual);
+        qDebug()<<hActual;
+        espera();
+
+        hActual = "Hilo "+QString::number(i)+" termino la ejecucion.";
+        ui->hiloActual->setText(hActual);
+        qDebug()<<hActual;
+        espera();
+    }
+
+    principalThread programaPrincipal(hileraArchivo, numProgramas);
+    QString estadisticas = programaPrincipal.controlador();
+    ui->textResult->setText(estadisticas);
 }
 
 
@@ -76,4 +89,13 @@ void MainWindow::on_aboutButton_clicked()
 {
     vInfo = new Info(this);
     vInfo->show();
+}
+
+void MainWindow::espera()
+{
+    clock_t start = clock();
+    clock_t finish = start+900000;
+    while(clock() < finish){
+
+    }
 }
