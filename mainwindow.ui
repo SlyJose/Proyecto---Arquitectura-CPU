@@ -31,14 +31,25 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QPushButton" name="pushButton">
-      <property name="styleSheet">
-       <string notr="true">font: 13pt &quot;Roboto&quot;;</string>
-      </property>
-      <property name="text">
-       <string>Cargar archivo</string>
-      </property>
-     </widget>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QPushButton" name="pushButton">
+        <property name="styleSheet">
+         <string notr="true">font: 13pt &quot;Roboto&quot;;</string>
+        </property>
+        <property name="text">
+         <string>Cargar archivo</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="aboutButton">
+        <property name="text">
+         <string>About</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <widget class="Line" name="line">

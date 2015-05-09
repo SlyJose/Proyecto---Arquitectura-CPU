@@ -18,7 +18,9 @@
 #include <iostream>
 #include <QDebug>
 #include <QMessageBox>
+
 #include "principalthread.h"
+#include "info.h"
 
 
 namespace Ui {
@@ -37,8 +39,11 @@ private slots:
 
     void on_pushButton_clicked();
 
+    void on_aboutButton_clicked();
+
 private:
     Ui::MainWindow *ui;
+    Info* vInfo;
 };
 
 #endif // MAINWINDOW_H

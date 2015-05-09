@@ -72,17 +72,8 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void MainWindow::on_aboutButton_clicked()
+{
+    vInfo = new Info(this);
+    vInfo->show();
+}
