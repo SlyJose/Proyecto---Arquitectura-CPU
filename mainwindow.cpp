@@ -67,18 +67,6 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
         }
     }while(continuar);
 
-    for(int i=1; i<=numProgramas; ++i){
-        QString hActual = "Hilo "+QString::number(i)+" en ejecucion.";
-        ui->hiloActual->setText(hActual);
-        qDebug()<<hActual;
-        espera();
-
-        hActual = "Hilo "+QString::number(i)+" termino la ejecucion.";
-        ui->hiloActual->setText(hActual);
-        qDebug()<<hActual;
-        espera();
-    }
-
     principalThread programaPrincipal(hileraArchivo, numProgramas);
     QString estadisticas = programaPrincipal.controlador();
     ui->textResult->setText(estadisticas);
@@ -89,13 +77,4 @@ void MainWindow::on_aboutButton_clicked()
 {
     vInfo = new Info(this);
     vInfo->show();
-}
-
-void MainWindow::espera()
-{
-    clock_t start = clock();
-    clock_t finish = start+900000;
-    while(clock() < finish){
-
-    }
 }

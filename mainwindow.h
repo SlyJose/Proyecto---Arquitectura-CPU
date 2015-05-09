@@ -18,8 +18,6 @@
 #include <iostream>
 #include <QDebug>
 #include <QMessageBox>
-#include <time.h>
-
 
 #include "principalthread.h"
 #include "info.h"
@@ -45,7 +43,6 @@ private slots:
 
 private:
 
-    void espera();
     Ui::MainWindow *ui;
     Info* vInfo;
 
