@@ -16,6 +16,11 @@ int memory[4][32];
 int cache[6][4];
 int* vecPrograma;
 QString estadisticas;
+int contCicCPU1 = 0;                         /* Encargado de llevar el conteo de cada ciclo del reloj en el CPU 1 */
+int contCicTotales = 0;                      /* Permite sincronizar que cada CPU vaya por el mismo ciclo de reloj */
+/* En la segunda parte se utilizará la variable contCicTotales totalmente */
+
+
 pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
 /*---------------------------------------------------*/
 
@@ -114,6 +119,8 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
 
             vecRegs[regX] = cache[(dirPrev%16)/4][bloqueCache]; // Pone la palabra en el registro.
             //Libero el recurso critico (la cache)
+            ++contCicCPU1;                              // Corre un ciclo de reloj
+            ++contCicTotales;
             return true;                        //Retorna true ya que tuvo exito con el lw.
         }
         ++indiceCache;
@@ -131,10 +138,14 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
             for(int i=0; i<4; ++i){
                 memory[i][bloqueMem] = cache[i][bloqueCache];   // Hago la copia del bloque modificado en cache a memoria.
             }
+            contCicCPU1 += 16;              /* En cada escritura se tardan 16 ciclos de reloj */
+            contCicTotales += 16;
         }
         for(int i=0; i<4; ++i){ //Write allocate
             cache[i][bloqueCache] = memory[i][numBloque]; // Subo el bloque de memoria a cache.
         }
+        contCicCPU1 += 16;              /* 16 ciclos de reloj */
+        contCicTotales += 16;
         // Libero el semaforo de la memoria
         cache[4][bloqueCache] = numBloque;    // Le pone el identificador al bloque en cache.
         cache[5][bloqueCache] = C;              // Pone el estado del bloque como compartido.
@@ -168,16 +179,22 @@ void* principalThread::procesador(int id, int pc)
 
         switch(IR[0]){
         case DADDI:
-            registros[IR[2]] = registros[IR[1]] + IR[3];                //Rx <- Ry + n
+            registros[IR[2]] = registros[IR[1]] + IR[3];                //Rx <- Ry + n       |  Las tres instrucciones
+            ++contCicCPU1;
+            ++contCicTotales;
             break;
         case DADD:
-            registros[IR[3]] = registros[IR[1]] + registros[IR[2]];     //Rx <- Ry + Rz
+            registros[IR[3]] = registros[IR[1]] + registros[IR[2]];     //Rx <- Ry + Rz      |  tardan un ciclo de reloj
+            ++contCicCPU1;
+            ++contCicTotales;
             break;
         case DSUB:
-            registros[IR[3]] = registros[IR[1]] - registros[IR[2]];     //Rx <- Ry - Rz
+            registros[IR[3]] = registros[IR[1]] - registros[IR[2]];     //Rx <- Ry - Rz      |  cada una.
+            ++contCicCPU1;
+            ++contCicTotales;
             break;
         case LW:
-            lw(IR[2], IR[1], IR[3], registros);          //Rx <- M(n + (Ry))
+            lw(IR[2], IR[1], IR[3], registros);          //Rx <- M(n + (Ry))            
             break;
         case SW:
             sw(IR[2], IR[1], IR[3], registros);          //M(n + (Ry)) <- Rx
@@ -186,11 +203,15 @@ void* principalThread::procesador(int id, int pc)
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
                 IP += (IR[3])*4;
             }
+            ++contCicCPU1;
+            ++contCicTotales;
             break;
         case BNEZ:
             if(registros[IR[1]] != 0){                                  //Rx != 0, salta
                 IP += (IR[3])*4;
             }
+            ++contCicCPU1;
+            ++contCicTotales;
             break;
         }
     }
@@ -228,6 +249,7 @@ QString principalThread::controlador()
         pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
 
         pthread_join(hilo, NULL);
+
         hiloActual += "Hilo actual: " + QString::number(tD.idThread);
         hiloActual += "  Estado: Finalizado\n";
 
@@ -245,6 +267,9 @@ QString principalThread::controlador()
         estadisticas += '\n';
     }
     estadisticas += "===================================================\n";
+
+    estadisticas += "\n Cantidad total de ciclos de reloj ejecutados: "+QString::number(contCicTotales);
+
 
     return estadisticas;
 }
@@ -266,21 +291,27 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
             
             cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];   /* Se almacena el contenido del registro en la posicion de la cache */
             cache[5][bloqueCache] = M;                            /* Se modifica el estado del bloque */
+            ++contCicCPU1;
+            ++contCicTotales;
             return true;
         }
         ++contador;
     }
     
-    if(vacio){                                               /* El bloque no se encuentra en cache y debe cargarse de memoria */
+    if(vacio){                                                   /* El bloque no se encuentra en cache y debe cargarse de memoria */
 
-        if(cache[5][bloqueCache] == M){                 /* El bloque esta en estado M y debe guardarse en memoria */
+        if(cache[5][bloqueCache] == M){                           /* El bloque esta en estado M y debe guardarse en memoria */
             for(int i = 0; i < 4; ++i){
                 memory[i][cache[4][bloqueCache]] = cache[i][bloqueCache];     /* Se copia cada estado del bloque en cache a memoria */
             }
+            contCicCPU1 += 16;                                   /* 16 ciclos de reloj requeridos en la escritura */
+            contCicTotales += 16;
         }
         for(int j = 0; j < 4; ++j){
-            cache[j][bloqueCache] = memory[j][numBloque];       /* Se copia el bloque requerido de memoria a cache */
+            cache[j][bloqueCache] = memory[j][numBloque];        /* Se copia el bloque requerido de memoria a cache */
         }
+        contCicCPU1 += 16;                                       /* 16 ciclos de reloj requeridos en la escritura */
+        contCicTotales += 16;
         cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                 /* Una vez cargado el bloque, se modifica el registro */
         cache[5][bloqueCache] = M;                                          /* Se modifica el estado del bloque */
         cache[4][bloqueCache] = numBloque;                                  /* Nuevo bloque en cache */
@@ -293,6 +324,8 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
 void principalThread::fin(int idThread, int *registros)
 {
     estadisticas += "---- Datos del hilo "+QString::number(idThread)+" ----\n";
+    estadisticas += "\n\n Ciclos de reloj utilizados en el hilo: "+QString::number(contCicCPU1)+"\n\n";
+    contCicCPU1 = 0;
     estadisticas += "*** Los registros quedaron como:\n";
     for(int i=0; i<32; ++i){
         estadisticas += "R["+QString::number(i)+"] = "+QString::number(registros[i])+'\n';
@@ -318,5 +351,4 @@ void principalThread::fin(int idThread, int *registros)
         }
         estadisticas += '\n';
     }
-
 }
