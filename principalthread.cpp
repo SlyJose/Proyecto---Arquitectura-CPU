@@ -234,6 +234,7 @@ QString principalThread::controlador()
         ++idThread;
     }
 
+    estadisticas += "===================================================\n";
     estadisticas += "*** La memoria del procesador quedo como:\n";
     for(int i=0; i<32; ++i){
         estadisticas += "Bloque de memoria "+QString::number(i)+'\n';
@@ -243,6 +244,7 @@ QString principalThread::controlador()
         }
         estadisticas += '\n';
     }
+    estadisticas += "===================================================\n";
 
     return estadisticas;
 }

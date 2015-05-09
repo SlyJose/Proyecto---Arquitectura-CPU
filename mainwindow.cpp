@@ -29,6 +29,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()                        /* Boton que permite abrir ventana de busqueda de archivos */
 {
+    ui->textResult->setText("");
 
     QString rutaArchivo = QFileDialog::getOpenFileName (this);      /* Se obtiene la ruta de los archivos seleccionados */
     QFile newFile(rutaArchivo);
