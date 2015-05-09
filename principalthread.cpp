@@ -11,13 +11,13 @@
 
 #include "principalthread.h"
 
-/*---- Variables globales -----*/
+/*---- Variables globales (memoria compartida) -----*/
 int memory[4][32];
 int cache[6][4];
 int* vecPrograma;
 QString estadisticas;
 pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
-/*-----------------------------*/
+/*---------------------------------------------------*/
 
 principalThread::principalThread(QString programa, int numHilos)
 {
@@ -40,6 +40,7 @@ principalThread::principalThread(QString programa, int numHilos)
         }
         strTemp.append(*it);
     }
+
     vecPrograma = new int[tamVec];
     int j=0;
     bool unaCifra = true;
@@ -50,7 +51,7 @@ principalThread::principalThread(QString programa, int numHilos)
 
     for(it = strTemp.begin(); it!=strTemp.end(); ++it){
         if(*it == '@'){
-            vecPCs[indiceVecPCs] = j+1;
+            vecPCs[indiceVecPCs] = j;
             ++indiceVecPCs;
         }else{
             if( *it == '|'){
@@ -196,7 +197,6 @@ void* principalThread::procesador(int id, int pc)
     if(vecPrograma[IP] == FIN){
         fin(idHilo, registros);
     }
-    //pthread_mutex_unlock(&mutClock);
 
     pthread_exit(NULL);
 }
@@ -231,15 +231,15 @@ QString principalThread::controlador()
         hiloActual += "Hilo actual: " + QString::number(tD.idThread);
         hiloActual += "  Estado: Finalizado\n";
 
-        ++indicePCs;
         ++idThread;
     }
 
-    estadisticas += "La memoria del procesador quedo como:\n";
+    estadisticas += "*** La memoria del procesador quedo como:\n";
     for(int i=0; i<32; ++i){
         estadisticas += "Bloque de memoria "+QString::number(i)+'\n';
+        estadisticas += "| ";
         for(int j=0; j<4; ++j){
-            estadisticas += '['+QString::number(memory[j][i])+"]-";
+            estadisticas += QString::number(memory[j][i])+" | ";
         }
         estadisticas += '\n';
     }
@@ -306,12 +306,12 @@ void principalThread::fin(int idThread, int *registros)
     }
     //Libero la cache.
 
-    estadisticas += "Datos del hilo "+QString::number(idThread)+'\n';
-    estadisticas += "Los registros quedaron como:\n";
+    estadisticas += "---- Datos del hilo "+QString::number(idThread)+" ----\n";
+    estadisticas += "*** Los registros quedaron como:\n";
     for(int i=0; i<32; ++i){
         estadisticas += "R["+QString::number(i)+"] = "+QString::number(registros[i])+'\n';
     }
-    estadisticas += "La cache de datos del procesador quedo asi:\n";
+    estadisticas += "*** La cache de datos del procesador quedo asi:\n";
     for(int i=0; i<4; ++i){
         QChar estado;
         switch(cache[5][i]){
@@ -326,8 +326,9 @@ void principalThread::fin(int idThread, int *registros)
             break;
         }
         estadisticas += "Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(cache[4][i])+'\n';
+        estadisticas += "| ";
         for(int j=0; j<4; ++j){
-            estadisticas += QString::number(cache[j][i]) + '-';
+            estadisticas += QString::number(cache[j][i]) + " | ";
         }
         estadisticas += '\n';
     }
