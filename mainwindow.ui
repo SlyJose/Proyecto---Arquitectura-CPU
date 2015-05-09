@@ -36,11 +36,21 @@
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <widget class="QPushButton" name="pushButton">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
           <property name="styleSheet">
            <string notr="true">font: 13pt &quot;Roboto&quot;;</string>
           </property>
           <property name="text">
            <string>Cargar archivo</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="aboutButton">
+          <property name="text">
+           <string>About</string>
           </property>
          </widget>
         </item>
@@ -52,9 +62,12 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="aboutButton">
+         <widget class="QPushButton" name="pushButton_2">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
           <property name="text">
-           <string>About</string>
+           <string>Salir</string>
           </property>
          </widget>
         </item>
@@ -129,5 +142,22 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>pushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>pushButton</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>68</x>
+     <y>107</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>68</x>
+     <y>107</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
