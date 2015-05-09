@@ -290,22 +290,6 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
 
 void principalThread::fin(int idThread, int *registros)
 {
-    //--------------------------------------------------------------------------------
-    //| Lo primero es pasar los bloques que quedaron en cache como 'M' a la memoria. |
-    //--------------------------------------------------------------------------------
-
-    //Bloqueo mi cache.
-    for(int i=0; i<4; ++i){
-        if(cache[5][i] == M){   //el bloque esta modificado
-            //Intento bloquear la memoria, si no puedo entonces suelta tambien la cache.
-            for(int j=0; j<4; ++j){
-                memory[j][cache[4][i]] = cache[j][i];
-            }
-            //Libero la memoria.
-        }
-    }
-    //Libero la cache.
-
     estadisticas += "---- Datos del hilo "+QString::number(idThread)+" ----\n";
     estadisticas += "*** Los registros quedaron como:\n";
     for(int i=0; i<32; ++i){
