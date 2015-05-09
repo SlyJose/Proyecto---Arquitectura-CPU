@@ -210,19 +210,6 @@ void *principalThread::procesadorHelper(void *threadStruct)
 
 QString principalThread::controlador()
 {
-
-    /*---------------Para desplegar los hilos que estan corriendo.--------------*/
-    QPlainTextEdit *textEdit = new QPlainTextEdit;
-    QPushButton *quitButton = new QPushButton("&Aceptar");
-    QObject::connect(quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(textEdit);
-    layout->addWidget(quitButton);
-    QWidget window;
-    window.setLayout(layout);
-    window.show();
-    /*---------------------------------------------------------------------------*/
-
     int idThread = 1;
     struct threadData tD;
     pthread_t hilo;
@@ -238,9 +225,6 @@ QString principalThread::controlador()
 
         hiloActual += "Empezo la ejecucion del hilo: "+QString::number(tD.idThread)+'\n';
 
-
-        textEdit->setPlainText(hiloActual);
-
         pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
 
         pthread_join(hilo, NULL);
@@ -249,8 +233,6 @@ QString principalThread::controlador()
 
         ++indicePCs;
         ++idThread;
-
-        textEdit->setPlainText(hiloActual);
     }
 
     estadisticas += "La memoria del procesador quedo como:\n";
@@ -330,23 +312,24 @@ void principalThread::fin(int idThread, int *registros)
         estadisticas += "R["+QString::number(i)+"] = "+QString::number(registros[i])+'\n';
     }
     estadisticas += "La cache de datos del procesador quedo asi:\n";
-    for(int i=0; i<6; ++i){
+    for(int i=0; i<4; ++i){
         QChar estado;
         switch(cache[5][i]){
-        case I:
-            estado = 'I';
-            break;
         case M:
             estado = 'M';
             break;
+        case I:
+            estado = 'I';
+            break;
         case C:
             estado = 'C';
+            break;
         }
-
-        estadisticas += "Bloque "+QString::number(i)+" estado "+estado+":\n";
+        estadisticas += "Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(cache[4][i])+'\n';
         for(int j=0; j<4; ++j){
-            estadisticas += QString::number(cache[i][j]) + '-';
+            estadisticas += QString::number(cache[j][i]) + '-';
         }
         estadisticas += '\n';
     }
+
 }

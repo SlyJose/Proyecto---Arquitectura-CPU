@@ -15,11 +15,6 @@
 #include <QDebug>
 #include <iterator>
 #include <pthread.h>
-#include <QMessageBox>
-#include <QtGui>
-#include <QPlainTextEdit>
-#include <QPushButton>
-#include <QVBoxLayout>
 
 //---------------------------------------------------------------
 //| Los tipos de instrucciones que puede simular el procesador. |
