@@ -323,9 +323,12 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Fu
 
 void principalThread::fin(int idThread, int *registros)
 {
-    estadisticas += "---- Datos del hilo "+QString::number(idThread)+" ----\n";
+    int tmp = contCicTotales - contCicCPU1;
+    estadisticas += "------ Datos del hilo "+QString::number(idThread)+" ------\n";
+    estadisticas += "\nCPU que lo ejecuta: 1";            // Segunda parte de agregará un indicar para cada CPU
     estadisticas += "\n\n Ciclos de reloj utilizados en el hilo: "+QString::number(contCicCPU1)+"\n\n";
     contCicCPU1 = 0;
+    estadisticas += " Estado del reloj al inicio del hilo: "+QString::number(tmp)+"\n\n";
     estadisticas += "*** Los registros quedaron como:\n";
     for(int i=0; i<32; ++i){
         estadisticas += "R["+QString::number(i)+"] = "+QString::number(registros[i])+'\n';
