@@ -13,6 +13,7 @@
 
 #include <QString>
 #include <QDebug>
+#include <QObject>
 #include <iterator>
 #include <pthread.h>
 
@@ -44,8 +45,8 @@ struct threadData{      /*!< Para pasar parametros a los threads. */
     int numPC;
 };
 
-class principalThread
-{
+class principalThread{
+
 private:
 
     /**
@@ -58,6 +59,7 @@ private:
     void* procesador(int id, int pc);
 
     static void* procesadorHelper(void* threadStruct);
+
 public:
 
     principalThread(QString programa, int numHilos); //constructor

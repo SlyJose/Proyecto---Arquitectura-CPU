@@ -26,6 +26,7 @@ pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
 
 principalThread::principalThread(QString programa, int numHilos)
 {
+
     numThreads = numHilos;
     vecPCs = new int[numThreads];
     QString::iterator it;
@@ -244,14 +245,12 @@ QString principalThread::controlador()
         tD.idThread = idThread;
         tD.numPC = vecPCs[indicePCs];
 
-        hiloActual += "Empezo la ejecucion del hilo: "+QString::number(tD.idThread)+'\n';
+        hiloActual = QString::number(idThread)+" en ejecucion.";
 
         pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
 
         pthread_join(hilo, NULL);
-
-        hiloActual += "Hilo actual: " + QString::number(tD.idThread);
-        hiloActual += "  Estado: Finalizado\n";
+        hiloActual = QString::number(idThread)+" terminado.";
 
         ++idThread;
     }

@@ -30,7 +30,7 @@ MainWindow::~MainWindow()
 void MainWindow::on_pushButton_clicked()                        /* Boton que permite abrir ventana de busqueda de archivos */
 {
     ui->textResult->setText("");
-
+    ui->hideLine->setVisible(false);
     QString rutaArchivo = QFileDialog::getOpenFileName (this);      /* Se obtiene la ruta de los archivos seleccionados */
     QFile newFile(rutaArchivo);
     QString hileraArchivo;
@@ -70,6 +70,7 @@ void MainWindow::on_pushButton_clicked()                        /* Boton que per
     principalThread programaPrincipal(hileraArchivo, numProgramas);
     QString estadisticas = programaPrincipal.controlador();    
     ui->textResult->setText(estadisticas);    
+
 }
 
 
