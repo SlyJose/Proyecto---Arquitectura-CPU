@@ -18,6 +18,10 @@ int memory1[4][32]; //cache y memoria del cpu1
 int chache1[6][4];
 int memory2[4][32]; //cache y memoria del cpu2
 int cache2[6][4];
+int directory[8][5];    // Directorios para cada procesador
+int directory1[8][5];
+int directory2[8][5];
+
 int* vecPrograma;
 QString estadisticas;
 int contCicCPU1 = 0;                         /* Encargado de llevar el conteo de cada ciclo del reloj en el CPU 1 */
@@ -78,6 +82,12 @@ principalThread::principalThread(QString programa, int numHilos)
     }
 
     //Inicializa los valores de la memoria y la cache.
+
+    /*
+     * Debe inicializarse cada una de las memorias, cache y directorios
+     *
+     *  */
+
     for(int i=0; i<4; ++i){
         for(int j=0; j<32; ++j){
             memory[i][j] = 0;
