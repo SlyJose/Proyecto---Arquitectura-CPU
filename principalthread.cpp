@@ -83,30 +83,55 @@ principalThread::principalThread(QString programa, int numHilos)
 
     //Inicializa los valores de la memoria y la cache.
 
-    /*
-     * Debe inicializarse cada una de las memorias, cache y directorios
-     *
-     *  */
-
-    for(int i=0; i<4; ++i){
+    for(int i=0; i<4; ++i){                     /* La memoria se mantiene como un solo bloque */
         for(int j=0; j<32; ++j){
             memory[i][j] = 0;
         }
     }
 
-    for(int i=0; i<6; ++i){
+    for(int i=0; i<6; ++i){                     /* Se inicializa cada cache de CPU */
         for(int j=0; j<4; ++j){
             if(i==4){
                 cache[i][j] = -1;
+                cache1[i][j] = -1;
+                cache2[i][j] = -1;
             }else{
                 if(i==5){
                     cache[i][j] = I;
+                    cache1[i][j] = I;
+                    cache2[i][j] = I;
                 }else{
                     cache[i][j] = 0;
+                    cache1[i][j] = 0;
+                    cache2[i][j] = 0;
                 }
             }
         }
     }
+
+    for(int i=0; i<8; ++i){                     /* Se inicializa cada directorio de CPU */
+        for(int j=0; j<5; ++j){
+
+            if( j=0 ){                  // Llenado de columna cero y su respectivo numero de bloke
+                directory[i][j] = i;
+                directory1[i][j] = i+8;
+                directory2[i][j] = i+16;
+            }else{
+                if( j=1 ){              // LLenado de columna uno y su respectiva etiqueta de bloke
+                   directory[i][j] = U;
+                   directory1[i][j] = U;
+                   directory2[i][j] = U;
+                }else{
+                    directory[i][j] = 0;
+                    directory1[i][j] = 0;
+                    directory2[i][j] = 0;
+
+                }
+            }
+        }
+    }
+
+
 
 }
 
