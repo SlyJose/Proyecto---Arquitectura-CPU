@@ -39,10 +39,19 @@
 #define M   2
 #define I   3
 
+//--------------------------------------
+//| Identificadores de cada procesador |
+//--------------------------------------
+
+#define CPU0    0
+#define CPU1    1
+#define CPU2    2
+
 struct threadData{      /*!< Para pasar parametros a los threads. */
     void* ptr;
     int idThread;
     int numPC;
+    int idCPU;
 };
 
 class principalThread{
