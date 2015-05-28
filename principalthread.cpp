@@ -14,6 +14,8 @@
 /*---- Variables globales (memoria compartida) -----*/
 int memory[4][32];
 int cache[6][4];
+int memory2[4][32];
+int chache2[6][4];
 int* vecPrograma;
 QString estadisticas;
 int contCicCPU1 = 0;                         /* Encargado de llevar el conteo de cada ciclo del reloj en el CPU 1 */
