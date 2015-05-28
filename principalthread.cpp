@@ -2,7 +2,7 @@
   * Universidad de Costa Rica
   * Escuela de Ciencias de la Computación e Informática
   * Arquitectura de Computadores
-  * Proyecto Programado Parte 1 - Simulacion procesador MIPS
+  * Proyecto Programado Parte 2 - Simulacion procesadores MIPS en paralelo
   * @author Fabian Rodriguez
   * @author Jose Pablo Ureña
   * I Semestre 2015
@@ -12,11 +12,9 @@
 #include "principalthread.h"
 
 /*---- Variables globales (memoria compartida) -----*/
-int memory[4][32];  //cache y memoria del cpu0
+int memory[4][24];  //cache y memoria del cpu0
 int cache[6][4];
-int memory1[4][32]; //cache y memoria del cpu1
 int chache1[6][4];
-int memory2[4][32]; //cache y memoria del cpu2
 int cache2[6][4];
 int directory[8][5];    // Directorios para cada procesador
 int directory1[8][5];
@@ -27,7 +25,6 @@ QString estadisticas;
 int contCicCPU1 = 0;                         /* Encargado de llevar el conteo de cada ciclo del reloj en el CPU 1 */
 int contCicTotales = 0;                      /* Permite sincronizar que cada CPU vaya por el mismo ciclo de reloj */
 /* En la segunda parte se utilizará la variable contCicTotales totalmente */
-
 
 pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
 /*---------------------------------------------------*/
@@ -84,7 +81,7 @@ principalThread::principalThread(QString programa, int numHilos)
     //Inicializa los valores de la memoria y la cache.
 
     for(int i=0; i<4; ++i){                     /* La memoria se mantiene como un solo bloque */
-        for(int j=0; j<32; ++j){
+        for(int j=0; j<numBloquesMem; ++j){
             memory[i][j] = 0;
         }
     }
@@ -283,6 +280,7 @@ QString principalThread::controlador()
     for(int indicePCs = 0; indicePCs < numThreads; ++indicePCs){
         tD.idThread = idThread;
         tD.numPC = vecPCs[indicePCs];
+        //tD.idCPU = i%3; //
 
         hiloActual = QString::number(idThread)+" en ejecucion.";
 
@@ -296,7 +294,7 @@ QString principalThread::controlador()
 
     estadisticas += "===================================================\n";
     estadisticas += "*** La memoria del procesador quedo como:\n";
-    for(int i=0; i<32; ++i){
+    for(int i=0; i<numBloquesMem; ++i){
         estadisticas += "Bloque de memoria "+QString::number(i)+'\n';
         estadisticas += "| ";
         for(int j=0; j<4; ++j){

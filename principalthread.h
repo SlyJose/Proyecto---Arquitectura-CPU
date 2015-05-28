@@ -2,7 +2,7 @@
   * Universidad de Costa Rica
   * Escuela de Ciencias de la Computación e Informática
   * Arquitectura de Computadores
-  * Proyecto Programado Parte 1 - Simulacion procesador MIPS
+  * Proyecto Programado Parte 2 - Simulacion procesadores MIPS en paralelo
   * @author Fabian Rodriguez
   * @author Jose Pablo Ureña
   * I Semestre 2015
@@ -46,6 +46,12 @@
 #define CPU0    0
 #define CPU1    1
 #define CPU2    2
+
+//------------------------------------------
+//| Constantes que hay en todo el programa |
+//------------------------------------------
+
+#define numBloquesMem   24
 
 struct threadData{      /*!< Para pasar parametros a los threads. */
     void* ptr;

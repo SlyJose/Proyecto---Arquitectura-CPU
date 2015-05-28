@@ -2,7 +2,7 @@
   * Universidad de Costa Rica
   * Escuela de Ciencias de la Computación e Informática
   * Arquitectura de Computadores
-  * Proyecto Programado Parte 1 - Simulacion procesador MIPS
+  * Proyecto Programado Parte 2 - Simulacion procesadores MIPS en paralelo
   * @author Fabian Rodriguez
   * @author Jose Pablo Ureña
   * I Semestre 2015
