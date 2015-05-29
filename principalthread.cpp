@@ -14,7 +14,7 @@
 /*---- Variables globales (memoria compartida) -----*/
 int memory[4][24];  //cache y memoria del cpu0
 int cache[6][4];
-int chache1[6][4];
+int cache1[6][4];
 int cache2[6][4];
 int directory[8][5];    // Directorios para cada procesador
 int directory1[8][5];
@@ -203,7 +203,34 @@ void* principalThread::procesador(int id, int pc)
     
     int IP = pc;   //IP = Instruction pointer
     int idHilo = id;
-
+    
+    /* Se crea un puntero para cada estructura que permita al metodo a llamar, identificar 
+    cual memoria-cache-directorio de CPU debe utilizar   */
+    
+    int *pointerToMemory = NULL;
+    int *pointerToCache = NULL;
+    int *pointerToDirectory = NULL;
+    
+    switch(idHilo){
+      case 0:                                         /* Se apunta a la estructura del CPU 0  */
+        pointerToMemory = memory[0];
+        pointerToCache = cache[0];
+        pointerToDirectory = directory[0];
+        break;
+        
+      case 1:                                         /* Se apunta a la estructura del CPU 1  */
+        pointerToMemory = memory1[0];
+        pointerToCache = cache1[0];
+        pointerToDirectory = directory1[0];
+        break;
+      
+      case 2:                                         /* Se apunta a la estructura del CPU 2  */
+        pointerToMemory = memory2[0];
+        pointerToCache = cache2[0];
+        pointerToDirectory = directory2[0];
+        break;
+    }
+    
     while(vecPrograma[IP] != FIN){ //mientras no encuentre una instruccion de finalizacion
 
         int IR[4];  //IR = instruction register
@@ -311,7 +338,7 @@ QString principalThread::controlador()
 }
 
 
-bool principalThread::sw(int regX, int regY, int n, int *vecRegs){         /* Funcion que realiza el store */
+bool principalThread::sw(int regX, int regY, int n, int *vecRegs, int *pointerToMemory, int *pointerToCache, int *pointerToDirectory){         /* Funcion que realiza el store */
     
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev / 16;
