@@ -12,9 +12,11 @@
 #include "principalthread.h"
 
 /*---- Variables globales (memoria compartida) -----*/
-int memory[4][24];  //cache y memoria del cpu0
-int cache[6][4];
-int cache1[6][4];
+int memory[4][8];       //memoria para cada procesador
+int memory1[4][8];
+int memory2[4][8];
+int cache[6][4];        //caches para cada procesador
+int chache1[6][4];
 int cache2[6][4];
 int directory[8][5];    // Directorios para cada procesador
 int directory1[8][5];
@@ -26,6 +28,9 @@ int contCicCPU1 = 0;                         /* Encargado de llevar el conteo de
 int contCicTotales = 0;                      /* Permite sincronizar que cada CPU vaya por el mismo ciclo de reloj */
 /* En la segunda parte se utilizará la variable contCicTotales totalmente */
 
+/* Mutex para los recursos críticos */
+pthread_mutex_t mutCache0 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCache1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
 /*---------------------------------------------------*/
 
@@ -78,11 +83,13 @@ principalThread::principalThread(QString programa, int numHilos)
         }
     }
 
-    //Inicializa los valores de la memoria y la cache.
+    //Inicializa los valores de las memorias, las caches y los directorios.
 
-    for(int i=0; i<4; ++i){                     /* La memoria se mantiene como un solo bloque */
-        for(int j=0; j<numBloquesMem; ++j){
+    for(int i=0; i<4; ++i){                     /* Se inicializa la memoria*/
+        for(int j=0; j<8; ++j){
             memory[i][j] = 0;
+            memory1[i][j] = 0;
+            memory2[i][j] = 0;
         }
     }
 
@@ -115,9 +122,9 @@ principalThread::principalThread(QString programa, int numHilos)
                 directory2[i][j] = i+16;
             }else{
                 if( j=1 ){              // LLenado de columna uno y su respectiva etiqueta de bloke
-                   directory[i][j] = U;
-                   directory1[i][j] = U;
-                   directory2[i][j] = U;
+                    directory[i][j] = U;
+                    directory1[i][j] = U;
+                    directory2[i][j] = U;
                 }else{
                     directory[i][j] = 0;
                     directory1[i][j] = 0;
@@ -258,7 +265,7 @@ void* principalThread::procesador(int id, int pc)
             ++contCicTotales;
             break;
         case LW:
-            lw(IR[2], IR[1], IR[3], registros);          //Rx <- M(n + (Ry))            
+            lw(IR[2], IR[1], IR[3], registros);          //Rx <- M(n + (Ry))
             break;
         case SW:
             sw(IR[2], IR[1], IR[3], registros);          //M(n + (Ry)) <- Rx
@@ -295,23 +302,45 @@ void *principalThread::procesadorHelper(void *threadStruct)
 
 QString principalThread::controlador()
 {
-    int idThread = 1;
-    struct threadData tD;
-    pthread_t hilo;
+    int thread_0 = 0;
+    int thread_1 = 1;
+    int thread_2 = 2;
+    struct threadData tD0;
+    struct threadData tD1;
+    struct threadData tD2;
+    pthread_t vecThreads[3];    //vector de threads para los procesadores
     QString hiloActual = "";
 
-    //-------------------------------------------------------------
-    //| Para la segunda parte se debe hacer un vector de threads. |
-    //-------------------------------------------------------------
+    int iPCs = 0;
+    int idThread = 0;
+    while(iPCs<numThreads){
+        if(iPCs == 0){  //es la primera vez
+            tD0.numPC = vecPCs[iPCs];
+            tD0.idThread = idThread;
+            tD0.idCPU = iPCs;
+            ++iPCs;
+            ++idThread;
+            tD1.numPC = vecPCs[iPCs];
+            tD1.idThread = idThread;
+            tD1.idCPU = iPCs;
+            ++iPCs;
+            ++idThread;
+            tD2.numPC = vecPCs[iPCs];
+            tD2.idThread = idThread;
+            tD2.idCPU = iPCs;
+        }
 
+        ++iPCs;
+        ++idThread;
+    }
     for(int indicePCs = 0; indicePCs < numThreads; ++indicePCs){
         tD.idThread = idThread;
         tD.numPC = vecPCs[indicePCs];
-        //tD.idCPU = i%3; //
+        //tD.idCPU = i%3;
 
         hiloActual = QString::number(idThread)+" en ejecucion.";
 
-        pthread_create(&hilo, NULL, procesadorHelper, (void*) &tD);
+        pthread_create(&hilo[0], NULL, procesadorHelper, (void*) &tD);
 
         pthread_join(hilo, NULL);
         hiloActual = QString::number(idThread)+" terminado.";
