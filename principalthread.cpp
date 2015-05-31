@@ -16,7 +16,7 @@ int memory[4][8];       //memoria para cada procesador
 int memory1[4][8];
 int memory2[4][8];
 int cache[6][4];        //caches para cada procesador
-int chache1[6][4];
+int cache1[6][4];
 int cache2[6][4];
 int directory[8][5];    // Directorios para cada procesador
 int directory1[8][5];
@@ -145,7 +145,7 @@ principalThread::~principalThread()
     delete[] vecPCs;
 }
 
-bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
+bool principalThread::lw(int regX, int regY, int n, int *vecRegs , int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY)
 {
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev/16;
@@ -201,44 +201,74 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs)
     return false;
 }
 
-void* principalThread::procesador(int id, int pc)
+void* principalThread::procesador(int id, int pc, int idCPU)
 {
-    int registros[32];   /* Los registros de cada procesador.*/
+    int registros[32];                              /* Los registros de cada procesador.*/
     for(int i=0; i<32; ++i){
         registros[i] = 0;
     }
     
-    int IP = pc;   //IP = Instruction pointer
+    int IP = pc;                                     /* IP = Instruction pointer */
     int idHilo = id;
     
     /* Se crea un puntero para cada estructura que permita al metodo a llamar, identificar 
     cual memoria-cache-directorio de CPU debe utilizar   */
     
-    int *pointerToMemory = NULL;
+    int *pointerToMemory = NULL;                    /* Punteros del CPU propios a su estructura */
     int *pointerToCache = NULL;
     int *pointerToDirectory = NULL;
+
+    int *pointerToMemoryX = NULL;                    /* Punteros externos al CPU */
+    int *pointerToCacheX = NULL;
+    int *pointerToDirectoryX = NULL;
+    int *pointerToMemoryY = NULL;
+    int *pointerToCacheY = NULL;
+    int *pointerToDirectoryY = NULL;
+
     
-    switch(idHilo){
-      case 0:                                         /* Se apunta a la estructura del CPU 0  */
-        pointerToMemory = memory[0];
+    /* Asignacion de punteros locales y externos */
+
+    switch(idCPU){
+      case 0:
+        pointerToMemory = memory[0];                    /* Puntero local al CPU 0 */
         pointerToCache = cache[0];
         pointerToDirectory = directory[0];
+        pointerToMemoryX = memory1[0];                  /* Puntero X al CPU 1 */
+        pointerToCacheX = cache1[0];
+        pointerToDirectoryX = directory1[0];
+        pointerToMemoryY = memory2[0];                  /* Puntero Y al CPU 2 */
+        pointerToCacheY = cache2[0];
+        pointerToDirectoryY = directory2[0];
+
         break;
         
-      case 1:                                         /* Se apunta a la estructura del CPU 1  */
-        pointerToMemory = memory1[0];
+      case 1:
+        pointerToMemory = memory1[0];                   /* Puntero local al CPU 1 */
         pointerToCache = cache1[0];
         pointerToDirectory = directory1[0];
+        pointerToMemoryX = memory[0];                   /* Puntero X al CPU 0 */
+        pointerToCacheX = cache[0];
+        pointerToDirectoryX = directory[0];
+        pointerToMemoryY = memory2[0];                  /* Puntero Y al CPU 2 */
+        pointerToCacheY = cache2[0];
+        pointerToDirectoryY = directory2[0];
+
         break;
       
-      case 2:                                         /* Se apunta a la estructura del CPU 2  */
-        pointerToMemory = memory2[0];
+      case 2:
+        pointerToMemory = memory2[0];                   /* Puntero local al CPU 2 */
         pointerToCache = cache2[0];
         pointerToDirectory = directory2[0];
+        pointerToMemoryX = memory[0];                   /* Puntero X al CPU 0 */
+        pointerToCacheX = cache[0];
+        pointerToDirectoryX = directory[0];
+        pointerToMemoryY = memory1[0];                  /* Puntero Y al CPU 1 */
+        pointerToCacheY = cache1[0];
+        pointerToDirectoryY = directory1[0];
         break;
     }
     
-    while(vecPrograma[IP] != FIN){ //mientras no encuentre una instruccion de finalizacion
+    while(vecPrograma[IP] != FIN){                         // Mientras no encuentre una instruccion de finalizacion
 
         int IR[4];  //IR = instruction register
         IR[0] = vecPrograma[IP];       //Codigo de instruccion
@@ -265,10 +295,10 @@ void* principalThread::procesador(int id, int pc)
             ++contCicTotales;
             break;
         case LW:
-            lw(IR[2], IR[1], IR[3], registros);          //Rx <- M(n + (Ry))
+            lw(IR[2], IR[1], IR[3], registros, pointerToMemory, pointerToCache, pointerToDirectory, pointerToMemoryX, pointerToCacheX, pointerToDirectoryX, pointerToMemoryY, pointerToCacheY, pointerToDirectoryY);          //Rx <- M(n + (Ry))
             break;
         case SW:
-            sw(IR[2], IR[1], IR[3], registros);          //M(n + (Ry)) <- Rx
+            sw(IR[2], IR[1], IR[3], registros, pointerToMemory, pointerToCache, pointerToDirectory, pointerToMemoryX, pointerToCacheX, pointerToDirectoryX, pointerToMemoryY, pointerToCacheY, pointerToDirectoryY);          //M(n + (Ry)) <- Rx
             break;
         case BEQZ:
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
@@ -297,7 +327,7 @@ void *principalThread::procesadorHelper(void *threadStruct)
 {
     struct threadData *td;
     td = (struct threadData*)threadStruct;
-    return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC);
+    return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->idCPU);
 }
 
 QString principalThread::controlador()
@@ -367,7 +397,7 @@ QString principalThread::controlador()
 }
 
 
-bool principalThread::sw(int regX, int regY, int n, int *vecRegs, int *pointerToMemory, int *pointerToCache, int *pointerToDirectory){         /* Funcion que realiza el store */
+bool principalThread::sw(int regX, int regY, int n, int *vecRegs, int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY){         /* Funcion que realiza el store */
     
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev / 16;

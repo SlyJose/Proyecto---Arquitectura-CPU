@@ -71,7 +71,7 @@ private:
      * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
      * @return void* ya que asi lo ocupa los pthreads.
      */
-    void* procesador(int id, int pc);
+    void* procesador(int id, int pc, int idCPU);
 
     static void* procesadorHelper(void* threadStruct);
 
@@ -94,8 +94,8 @@ private:
     //| Funciones privadas de la clase. |
     //-----------------------------------
 
-    bool lw(int regX, int regY, int n, int* vecRegs);
-    bool sw(int regX, int regY, int n, int *vecRegs);
+    bool lw(int regX, int regY, int n, int* vecRegs, int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY);
+    bool sw(int regX, int regY, int n, int *vecRegs, int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY);
 
     void fin(int idThread, int* registros);
 
