@@ -401,11 +401,23 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, int *pTm, int 
     
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev / 16;
-    int bloqueCache = numBloque % 4;        /* Se obtiene el numero del bloque a buscar en cache */
-    
-    bool vacio = true;
-    
+    int bloqueCache = numBloque % 4;                             /* Se obtiene el numero del bloque a buscar en cache */
+    bool vacio = true;    
     int contador = 0;
+
+    while(vacio && contador < 4){       /* Busqueda del bloque en cache local */
+
+        if(){
+
+        }
+        ++contador;
+    }
+
+
+
+
+
+
     while(vacio && contador < 4){                           /* Se da lectura en la fila 4 del cache para buscar la etiqueta del bloque*/
         
         if(cache[4][contador] == numBloque && cache[5][bloqueCache] != I){          /* El bloque si se encuentra en cache */
