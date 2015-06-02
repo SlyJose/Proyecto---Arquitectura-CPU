@@ -12,17 +12,57 @@
 #include "principalthread.h"
 
 /*---- Variables globales (memoria compartida) -----*/
-int memory[4][8];       //memoria para cada procesador
-int memory1[4][8];
-int memory2[4][8];
-int cache[6][4];        //caches para cada procesador
-int cache1[6][4];
-int cache2[6][4];
-int directory[8][5];    // Directorios para cada procesador
-int directory1[8][5];
-int directory2[8][5];
+
+struct sMemory{
+    int memory[4][8];       // Memoria CPU 0
+};
+struct sCach{
+    int cache[6][4];        // Cache CPU 0
+};
+struct sDirectory{
+    int directory[8][5];    // Directory CPU 0
+};
+
+/* --------------------------------------------- */
+
+struct sMemory1{
+    int memory1[4][8];       // Memoria CPU 1
+};
+struct sCach1{
+    int cache1[6][4];        // Cache CPU 1
+};
+struct sDirectory1{
+    int directory1[8][5];    // Directory CPU 1
+};
+
+/* --------------------------------------------- */
+
+struct sMemory2{
+    int memory2[4][8];       // Memoria CPU 2
+};
+struct sCach2{
+    int cache2[6][4];        // Cache CPU 2
+};
+struct sDirectory2{
+    int directory2[8][5];    // Directory CPU 2
+};
+
+
+sMemory sMem;                // Creacion de instancias
+sCach sCache;
+sDirectory sDirect;
+
+sMemory1 sMem1;
+sCach1 sCache1;
+sDirectory1 sDirect1;
+
+sMemory2 sMem2;
+sCach2 sCache2;
+sDirectory2 sDirect2;
+
 
 int* vecPrograma;
+
 QString estadisticas;
 int contCicCPU1 = 0;                         /* Encargado de llevar el conteo de cada ciclo del reloj en el CPU 1 */
 int contCicTotales = 0;                      /* Permite sincronizar que cada CPU vaya por el mismo ciclo de reloj */
@@ -87,49 +127,48 @@ principalThread::principalThread(QString programa, int numHilos)
 
     for(int i=0; i<4; ++i){                     /* Se inicializa la memoria*/
         for(int j=0; j<8; ++j){
-            memory[i][j] = 0;
-            memory1[i][j] = 0;
-            memory2[i][j] = 0;
+            sMem.memory[i][j] = 0;
+            sMem1.memory1[i][j] = 0;
+            sMem2.memory2[i][j] = 0;
         }
     }
 
     for(int i=0; i<6; ++i){                     /* Se inicializa cada cache de CPU */
         for(int j=0; j<4; ++j){
             if(i==4){
-                cache[i][j] = -1;
-                cache1[i][j] = -1;
-                cache2[i][j] = -1;
+                sCach.cache[i][j] = -1;
+                sCach1.cache1[i][j] = -1;
+                sCach2.cache2[i][j] = -1;
             }else{
                 if(i==5){
-                    cache[i][j] = I;
-                    cache1[i][j] = I;
-                    cache2[i][j] = I;
+                    sCach.cache[i][j] = I;
+                    sCach1.cache1[i][j] = I;
+                    sCach2.cache2[i][j] = I;
                 }else{
-                    cache[i][j] = 0;
-                    cache1[i][j] = 0;
-                    cache2[i][j] = 0;
+                    sCach.cache[i][j] = 0;
+                    sCach1.cache1[i][j] = 0;
+                    sCach2.cache2[i][j] = 0;
                 }
             }
         }
     }
 
-    for(int i=0; i<8; ++i){                     /* Se inicializa cada directorio de CPU */
+    for(int i=0; i<8; ++i){                                 /* Se inicializa cada directorio de CPU */
         for(int j=0; j<5; ++j){
 
-            if( j=0 ){                  // Llenado de columna cero y su respectivo numero de bloke
-                directory[i][j] = i;
-                directory1[i][j] = i+8;
-                directory2[i][j] = i+16;
+            if( j=0 ){                                      // Llenado de columna cero y su respectivo numero de bloke
+                sDirect.directory[i][j] = i;
+                sDirect1.directory1[i][j] = i+8;
+                sDirect2.directory2[i][j] = i+16;
             }else{
-                if( j=1 ){              // LLenado de columna uno y su respectiva etiqueta de bloke
-                    directory[i][j] = U;
-                    directory1[i][j] = U;
-                    directory2[i][j] = U;
+                if( j=1 ){                                  // LLenado de columna uno y su respectiva etiqueta de bloke
+                    sDirect.directory[i][j] = U;
+                    sDirect1.directory1[i][j] = U;
+                    sDirect2.directory2[i][j] = U;
                 }else{
-                    directory[i][j] = 0;
-                    directory1[i][j] = 0;
-                    directory2[i][j] = 0;
-
+                    sDirect.directory[i][j] = 0;
+                    sDirect1.directory1[i][j] = 0;
+                    sDirect2.directory2[i][j] = 0;
                 }
             }
         }
