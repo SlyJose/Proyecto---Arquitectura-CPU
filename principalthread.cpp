@@ -401,21 +401,57 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, int *pTm, int 
     
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev / 16;
-    int bloqueCache = numBloque % 4;                             /* Se obtiene el numero del bloque a buscar en cache */
+    int bloqueCache = numBloque % 4;                                    /* Se obtiene el numero del bloque a buscar en cache */
     bool vacio = true;    
-    int contador = 0;
+    int contador = 0;    
 
-    while(vacio && contador < 4){       /* Busqueda del bloque en cache local */
+    while(vacio && contador < 4){                                       /* Busqueda del bloque en cache local */
 
-        if(){
+        int indice1 = 16;                // Posicion fila 4
+        int indice2 = 20;                // Posicion fila 5
+        int pTemporal = NULL;            // Puntero temporal
+        pTemporal = pTc;
 
+        if(*(pTc+indice1) == numBloque && *(pTc+indice2) != I ){        /* El bloque si se encuentra en cache */
+            vacio = false;
+            // cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
+            pTc = pTc+indice2;           // Se mueve el puntero
+            *pTc = M;                    // El bloque se etiqueta modificado
+            pTc = pTemporal;
+
+            int marcador = 0;           // Variable que se dirije al inicio de cada fila
+            int noEsta = true;
+
+            for(int i = 0; i < 8 && noEsta; ++i){                       // Busqueda en el primer directorio
+                if(*(pTd+marcador) == numBloque ){
+                    pTemporal = pTd;                // Almacena el puntero original
+                    pTd = pTd + 1;                  // Segunda columna, etiqueta del bloque
+                    *pTd = M;
+                    //poner un 1 al procesador que lo esta usando
+                    noEsta = false;
+                }
+                pTd = pTemporal;                    // Reestablece el puntero
+                marcador += 5;                      // Se mueve a la siguiente fila del directorio
+            }
+
+            for(int i = 0; i < 8 && noEsta; ++i){                       // Busqueda en el segundo directorio
+                if(*(pTdX+) )
+
+            }
         }
         ++contador;
+        ++indice1;
+        ++indice2;
     }
 
 
 
+ /*
 
+     Codigo viejo
+   ----------------------------------------------------------------------------------------------------------------------
+
+*/
 
 
     while(vacio && contador < 4){                           /* Se da lectura en la fila 4 del cache para buscar la etiqueta del bloque*/
@@ -453,6 +489,17 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, int *pTm, int 
         return true;
     }
     return false;
+
+
+    /*
+
+        Codigo viejo
+      ----------------------------------------------------------------------------------------------------------------------
+
+   */
+
+
+
 }
 
 void principalThread::fin(int idThread, int *registros)
