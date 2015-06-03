@@ -60,6 +60,22 @@ sMemory2 sMem2;
 sCach2 sCache2;
 sDirectory2 sDirect2;
 
+/* Se crea un puntero para cada estructura que permita al metodo a llamar, identificar
+cual memoria-cache-directorio de CPU debe utilizar de forma local-externa */
+
+
+sMemory     *pMemory;
+sCach       *pCache;
+sDirectory  *pDirect;
+
+sMemory1     *pMemory1;
+sCach1       *pCache1;
+sDirectory1  *pDirect1;
+
+sMemory2     *pMemory2;
+sCach2       *pCache2;
+sDirectory2  *pDirect2;
+
 
 int* vecPrograma;
 
@@ -174,8 +190,15 @@ principalThread::principalThread(QString programa, int numHilos)
         }
     }
 
-
-
+    pMemory = &sMem;                                        // Inicializacion de punteros
+    pCache  = &sCache;
+    pDirect = &sDirect;
+    pMemory1 = &sMem1;
+    pCache1  = &sCache1;
+    pDirect1 = &sDirect1;
+    pMemory2 = &sMem2;
+    pCache2  = &sCache2;
+    pDirect2 = &sDirect2;
 }
 
 
@@ -250,63 +273,7 @@ void* principalThread::procesador(int id, int pc, int idCPU)
     int IP = pc;                                     /* IP = Instruction pointer */
     int idHilo = id;
     
-    /* Se crea un puntero para cada estructura que permita al metodo a llamar, identificar 
-    cual memoria-cache-directorio de CPU debe utilizar   */
-    
-    int *pointerToMemory = NULL;                    /* Punteros del CPU propios a su estructura */
-    int *pointerToCache = NULL;
-    int *pointerToDirectory = NULL;
 
-    int *pointerToMemoryX = NULL;                    /* Punteros externos al CPU */
-    int *pointerToCacheX = NULL;
-    int *pointerToDirectoryX = NULL;
-    int *pointerToMemoryY = NULL;
-    int *pointerToCacheY = NULL;
-    int *pointerToDirectoryY = NULL;
-
-    
-    /* Asignacion de punteros locales y externos */
-
-    switch(idCPU){
-      case 0:
-        pointerToMemory = memory[0];                    /* Puntero local al CPU 0 */
-        pointerToCache = cache[0];
-        pointerToDirectory = directory[0];
-        pointerToMemoryX = memory1[0];                  /* Puntero X al CPU 1 */
-        pointerToCacheX = cache1[0];
-        pointerToDirectoryX = directory1[0];
-        pointerToMemoryY = memory2[0];                  /* Puntero Y al CPU 2 */
-        pointerToCacheY = cache2[0];
-        pointerToDirectoryY = directory2[0];
-
-        break;
-        
-      case 1:
-        pointerToMemory = memory1[0];                   /* Puntero local al CPU 1 */
-        pointerToCache = cache1[0];
-        pointerToDirectory = directory1[0];
-        pointerToMemoryX = memory[0];                   /* Puntero X al CPU 0 */
-        pointerToCacheX = cache[0];
-        pointerToDirectoryX = directory[0];
-        pointerToMemoryY = memory2[0];                  /* Puntero Y al CPU 2 */
-        pointerToCacheY = cache2[0];
-        pointerToDirectoryY = directory2[0];
-
-        break;
-      
-      case 2:
-        pointerToMemory = memory2[0];                   /* Puntero local al CPU 2 */
-        pointerToCache = cache2[0];
-        pointerToDirectory = directory2[0];
-        pointerToMemoryX = memory[0];                   /* Puntero X al CPU 0 */
-        pointerToCacheX = cache[0];
-        pointerToDirectoryX = directory[0];
-        pointerToMemoryY = memory1[0];                  /* Puntero Y al CPU 1 */
-        pointerToCacheY = cache1[0];
-        pointerToDirectoryY = directory1[0];
-        break;
-    }
-    
     while(vecPrograma[IP] != FIN){                         // Mientras no encuentre una instruccion de finalizacion
 
         int IR[4];  //IR = instruction register
@@ -334,10 +301,36 @@ void* principalThread::procesador(int id, int pc, int idCPU)
             ++contCicTotales;
             break;
         case LW:
-            lw(IR[2], IR[1], IR[3], registros, pointerToMemory, pointerToCache, pointerToDirectory, pointerToMemoryX, pointerToCacheX, pointerToDirectoryX, pointerToMemoryY, pointerToCacheY, pointerToDirectoryY);          //Rx <- M(n + (Ry))
+
+            /* Asignacion de punteros locales y externos */
+
+            switch(idCPU){
+              case 0:
+                lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemory1, pCache1, pDirect1, pMemory2, pCache2, pDirect2);          //Rx <- M(n + (Ry))
+                break;
+              case 1:
+                lw(IR[2], IR[1], IR[3], registros, pMemory1, pCache1, pDirect1, pMemory, pCache, pDirect, pMemory2, pCache2, pDirect2);
+                break;
+              case 2:
+                lw(IR[2], IR[1], IR[3], registros, pMemory2, pCache2, pDirect2, pMemory, pCache, pDirect, pMemory1, pCache1, pDirect1);
+                break;
+            }
             break;
         case SW:
-            sw(IR[2], IR[1], IR[3], registros, pointerToMemory, pointerToCache, pointerToDirectory, pointerToMemoryX, pointerToCacheX, pointerToDirectoryX, pointerToMemoryY, pointerToCacheY, pointerToDirectoryY);          //M(n + (Ry)) <- Rx
+
+            /* Asignacion de punteros locales y externos */
+
+            switch(idCPU){
+              case 0:
+                sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemory1, pCache1, pDirect1, pMemory2, pCache2, pDirect2);           //M(n + (Ry)) <- Rx
+                break;
+              case 1:
+                sw(IR[2], IR[1], IR[3], registros, pMemory1, pCache1, pDirect1, pMemory, pCache, pDirect, pMemory2, pCache2, pDirect2);
+                break;
+              case 2:
+                sw(IR[2], IR[1], IR[3], registros, pMemory2, pCache2, pDirect2, pMemory, pCache, pDirect, pMemory1, pCache1, pDirect1);
+                break;
+            }
             break;
         case BEQZ:
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
