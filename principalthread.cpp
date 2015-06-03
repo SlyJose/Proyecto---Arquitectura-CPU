@@ -177,6 +177,7 @@ principalThread::~principalThread()
 
 bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY)
 {
+    //prueba de actualizacion en github
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev/16;
     int bloqueCache = numBloque%4;  /* Numero del bloque a buscar en el cache*/
