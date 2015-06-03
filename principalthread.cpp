@@ -14,67 +14,45 @@
 /*---- Variables globales (memoria compartida) -----*/
 
 struct sMemory{
-    int memory[4][8];       // Memoria CPU 0
+    int memory[4][8];       // Memoria CPU
 };
 struct sCach{
-    int cache[6][4];        // Cache CPU 0
+    int cache[6][4];        // Cache CPU
 };
 struct sDirectory{
-    int directory[8][5];    // Directory CPU 0
+    int directory[8][5];    // Directory CPU
 };
 
 /* --------------------------------------------- */
-
-struct sMemory1{
-    int memory1[4][8];       // Memoria CPU 1
-};
-struct sCach1{
-    int cache1[6][4];        // Cache CPU 1
-};
-struct sDirectory1{
-    int directory1[8][5];    // Directory CPU 1
-};
-
-/* --------------------------------------------- */
-
-struct sMemory2{
-    int memory2[4][8];       // Memoria CPU 2
-};
-struct sCach2{
-    int cache2[6][4];        // Cache CPU 2
-};
-struct sDirectory2{
-    int directory2[8][5];    // Directory CPU 2
-};
 
 
 sMemory sMem;                // Creacion de instancias
 sCach sCache;
 sDirectory sDirect;
 
-sMemory1 sMem1;
-sCach1 sCache1;
-sDirectory1 sDirect1;
+sMemory sMem1;
+sCach sCache1;
+sDirectory sDirect1;
 
-sMemory2 sMem2;
-sCach2 sCache2;
-sDirectory2 sDirect2;
+sMemory sMem2;
+sCach sCache2;
+sDirectory sDirect2;
 
 /* Se crea un puntero para cada estructura que permita al metodo a llamar, identificar
 cual memoria-cache-directorio de CPU debe utilizar de forma local-externa */
 
 
-sMemory     *pMemory;
+sMemory     *pMemory;                       /* Estructuras locales */
 sCach       *pCache;
 sDirectory  *pDirect;
 
-sMemory1     *pMemory1;
-sCach1       *pCache1;
-sDirectory1  *pDirect1;
+sMemory     *pMemoryX;                      /* Estructuras externas */
+sCach       *pCacheX;
+sDirectory  *pDirectX;
 
-sMemory2     *pMemory2;
-sCach2       *pCache2;
-sDirectory2  *pDirect2;
+sMemory     *pMemoryY;
+sCach       *pCacheY;
+sDirectory  *pDirectY;
 
 
 int* vecPrograma;
@@ -144,26 +122,26 @@ principalThread::principalThread(QString programa, int numHilos)
     for(int i=0; i<4; ++i){                     /* Se inicializa la memoria*/
         for(int j=0; j<8; ++j){
             sMem.memory[i][j] = 0;
-            sMem1.memory1[i][j] = 0;
-            sMem2.memory2[i][j] = 0;
+            sMem1.memory[i][j] = 0;
+            sMem2.memory[i][j] = 0;
         }
     }
 
-    for(int i=0; i<6; ++i){                     /* Se inicializa cada cache de CPU */
+    for(int i=0; i<6; ++i){                     /* Se inicializa cada cache de CPU. */
         for(int j=0; j<4; ++j){
             if(i==4){
-                sCach.cache[i][j] = -1;
-                sCach1.cache1[i][j] = -1;
-                sCach2.cache2[i][j] = -1;
+                sCache.cache[i][j] = -1;
+                sCache1.cache[i][j] = -1;
+                sCache2.cache[i][j] = -1;
             }else{
                 if(i==5){
-                    sCach.cache[i][j] = I;
-                    sCach1.cache1[i][j] = I;
-                    sCach2.cache2[i][j] = I;
+                    sCache.cache[i][j] = I;
+                    sCache1.cache[i][j] = I;
+                    sCache2.cache[i][j] = I;
                 }else{
-                    sCach.cache[i][j] = 0;
-                    sCach1.cache1[i][j] = 0;
-                    sCach2.cache2[i][j] = 0;
+                    sCache.cache[i][j] = 0;
+                    sCache1.cache[i][j] = 0;
+                    sCache2.cache[i][j] = 0;
                 }
             }
         }
@@ -174,31 +152,21 @@ principalThread::principalThread(QString programa, int numHilos)
 
             if( j=0 ){                                      // Llenado de columna cero y su respectivo numero de bloke
                 sDirect.directory[i][j] = i;
-                sDirect1.directory1[i][j] = i+8;
-                sDirect2.directory2[i][j] = i+16;
+                sDirect1.directory[i][j] = i+8;
+                sDirect2.directory[i][j] = i+16;
             }else{
                 if( j=1 ){                                  // LLenado de columna uno y su respectiva etiqueta de bloke
                     sDirect.directory[i][j] = U;
-                    sDirect1.directory1[i][j] = U;
-                    sDirect2.directory2[i][j] = U;
+                    sDirect1.directory[i][j] = U;
+                    sDirect2.directory[i][j] = U;
                 }else{
                     sDirect.directory[i][j] = 0;
-                    sDirect1.directory1[i][j] = 0;
-                    sDirect2.directory2[i][j] = 0;
+                    sDirect1.directory[i][j] = 0;
+                    sDirect2.directory[i][j] = 0;
                 }
             }
         }
-    }
-
-    pMemory = &sMem;                                        // Inicializacion de punteros
-    pCache  = &sCache;
-    pDirect = &sDirect;
-    pMemory1 = &sMem1;
-    pCache1  = &sCache1;
-    pDirect1 = &sDirect1;
-    pMemory2 = &sMem2;
-    pCache2  = &sCache2;
-    pDirect2 = &sDirect2;
+    }    
 }
 
 
@@ -207,7 +175,7 @@ principalThread::~principalThread()
     delete[] vecPCs;
 }
 
-bool principalThread::lw(int regX, int regY, int n, int *vecRegs , int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY)
+bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY)
 {
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev/16;
@@ -274,6 +242,49 @@ void* principalThread::procesador(int id, int pc, int idCPU)
     int idHilo = id;
     
 
+    /* Asignacion de punteros locales y externos */
+
+    switch(idCPU){
+      case 0:
+        pMemory = &sMem;                             /* CPU 0 Local */
+        pCache = &sCache;
+        pDirect = &sDirect;
+        pMemoryX = &sMem1;                           /* CPU's Externos */
+        pCacheX = &sCache1;
+        pDirectX = &sDirect1;
+        pMemoryY = &sMem2;
+        pCacheY = &sCache2;
+        pDirectY = &sDirect2;
+        break;
+
+      case 1:
+        pMemory = &sMem1;                             /* CPU 1 Local */
+        pCache = &sCache1;
+        pDirect = &sDirect1;
+        pMemoryX = &sMem;                             /* CPU's Externos */
+        pCacheX = &sCache;
+        pDirectX = &sDirect;
+        pMemoryY = &sMem2;
+        pCacheY = &sCache2;
+        pDirectY = &sDirect2;
+        break;
+
+      case 2:
+        pMemory = &sMem2;                             /* CPU 2 Local */
+        pCache = &sCache2;
+        pDirect = &sDirect2;
+        pMemoryX = &sMem;                             /* CPU's Externos */
+        pCacheX = &sCache;
+        pDirectX = &sDirect;
+        pMemoryY = &sMem1;
+        pCacheY = &sCache1;
+        pDirectY = &sDirect1;
+
+        break;
+    }
+
+
+
     while(vecPrograma[IP] != FIN){                         // Mientras no encuentre una instruccion de finalizacion
 
         int IR[4];  //IR = instruction register
@@ -301,37 +312,11 @@ void* principalThread::procesador(int id, int pc, int idCPU)
             ++contCicTotales;
             break;
         case LW:
-
-            /* Asignacion de punteros locales y externos */
-
-            switch(idCPU){
-              case 0:
-                lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemory1, pCache1, pDirect1, pMemory2, pCache2, pDirect2);          //Rx <- M(n + (Ry))
-                break;
-              case 1:
-                lw(IR[2], IR[1], IR[3], registros, pMemory1, pCache1, pDirect1, pMemory, pCache, pDirect, pMemory2, pCache2, pDirect2);
-                break;
-              case 2:
-                lw(IR[2], IR[1], IR[3], registros, pMemory2, pCache2, pDirect2, pMemory, pCache, pDirect, pMemory1, pCache1, pDirect1);
-                break;
-            }
+            lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY);          //Rx <- M(n + (Ry))
             break;
         case SW:
-
-            /* Asignacion de punteros locales y externos */
-
-            switch(idCPU){
-              case 0:
-                sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemory1, pCache1, pDirect1, pMemory2, pCache2, pDirect2);           //M(n + (Ry)) <- Rx
-                break;
-              case 1:
-                sw(IR[2], IR[1], IR[3], registros, pMemory1, pCache1, pDirect1, pMemory, pCache, pDirect, pMemory2, pCache2, pDirect2);
-                break;
-              case 2:
-                sw(IR[2], IR[1], IR[3], registros, pMemory2, pCache2, pDirect2, pMemory, pCache, pDirect, pMemory1, pCache1, pDirect1);
-                break;
-            }
-            break;
+            sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY);           //M(n + (Ry)) <- Rx
+            break;            
         case BEQZ:
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
                 IP += (IR[3])*4;
@@ -429,7 +414,7 @@ QString principalThread::controlador()
 }
 
 
-bool principalThread::sw(int regX, int regY, int n, int *vecRegs, int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY){         /* Funcion que realiza el store */
+bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY){         /* Funcion que realiza el store */
     
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev / 16;
@@ -568,3 +553,4 @@ void principalThread::fin(int idThread, int *registros)
         estadisticas += '\n';
     }
 }
+
