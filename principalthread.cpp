@@ -58,19 +58,27 @@ sDirectory  *pDirectY;
 int* vecPrograma;
 
 QString estadisticas;
+int reloj;
 int contCicCPU1 = 0;                         /* Encargado de llevar el conteo de cada ciclo del reloj en el CPU 1 */
 int contCicTotales = 0;                      /* Permite sincronizar que cada CPU vaya por el mismo ciclo de reloj */
 /* En la segunda parte se utilizará la variable contCicTotales totalmente */
 
 /* Mutex para los recursos críticos */
-pthread_mutex_t mutCache0 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutCache1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCacheLocal = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCacheRemoto1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCacheRemoto2 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutMemLocal = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutMemRemoto1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutMemRemoto2 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutDirLocal = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutDirRemoto1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutDirRemoto2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
 /*---------------------------------------------------*/
 
 principalThread::principalThread(QString programa, int numHilos)
 {
-
+    reloj = 0;
     numThreads = numHilos;
     vecPCs = new int[numThreads];
     QString::iterator it;
@@ -166,7 +174,30 @@ principalThread::principalThread(QString programa, int numHilos)
                 }
             }
         }
-    }    
+    }
+
+    /*       Directorio
+
+          B   E   P0  P1  P2
+        ---------------------
+        | 0 | C | 1 |   |   |
+        ---------------------
+        | 1 | M | 1 | 0 | 0 |
+        ---------------------
+        | 2 | U |   |   |   |
+        ---------------------
+        | 3 |   |   |   |   |
+        ---------------------
+        | 4 | C | 1 | 0 | 1 |
+        ---------------------
+        | 5 |   |   |   |   |
+        ---------------------
+        | 6 |   |   |   |   |
+        ---------------------
+        | 7 |   |   |   |   |
+        ---------------------
+
+     */
 }
 
 
@@ -177,13 +208,89 @@ principalThread::~principalThread()
 
 bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY)
 {
-    //prueba de actualizacion en github
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev/16;
     int bloqueCache = numBloque%4;  /* Numero del bloque a buscar en el cache*/
+    int filaCache = (dirPrev%16)/4;
     
-    int indiceCache = 0;
-    //Hay que bloquear el recurso critico (la cache)
+    // **************** Busco en cache local ****************
+    pthread_mutex_lock(&mutCacheLocal); //bloqueo la cache local
+    if(pTc->cache[4][bloqueCache] == numBloque && pTc->cache[5][bloqueCache] != I){
+        vecRegs[regX] = pTc->cache[filaCache][bloqueCache];
+        pthread_mutex_unlock(&mutCacheLocal);
+        return true;
+    }else{
+        if(pTc->cache[5][bloqueCache] == M){    //donde va a poner el bloque esta modificado
+            /*
+             *
+             * Tengo que sacarlo de la cache y la pasa a memoria
+             *
+             */
+            if(numBloque <= pTd->directory[7][0]){  //pertenece al directorio local?
+                if(pthread_mutex_trylock(&mutDirLocal) == 0){    //obtiene el recurso
+                    int indiceDir = 0;
+                    while(indiceDir < 8){
+                        if(pTd->directory[indiceDir][0] == numBloque){   //lo encuentra
+                            if(pTd->directory[indiceDir][1] == U){  //nadie tiene el bloque en cache
+                                //lo subo de memoria
+                                if(pthread_mutex_trylock()==0){ //intenta obtener la memoria local
+                                    int indiceMem = 0;
+                                    while(indiceMem < 4){
+                                        if(pTm->memory[4][indiceMem] == numBloque){
+
+                                        }
+                                        ++indiceMem;
+                                    }
+                                }else{
+                                    pthread_mutex_unlock(&mutDirLocal);
+                                    pthread_mutex_unlock(&mutCacheLocal);
+                                    return false;
+                                }
+                            }
+                        }
+                        ++indiceDir;
+                    }
+                }else{
+                    pthread_mutex_unlock(&mutCacheLocal);
+                    return false;
+                }
+            }
+            if(numBloque >= pTdX->directory[0][0] && numBloque <= pTdX->directory[7][0]){   //pertenece al directorio remoto 1?
+                if(pthread_mutex_trylock(&mutDirRemoto1) == 0){    //obtiene el recurso
+                    int indiceDir = 0;
+                    while(indiceDir < 8){
+                        if(pTdX->directory[indiceDir][0] == numBloque){ //lo encuentra
+
+                        }
+                        ++indiceDir;
+                    }
+                }else{
+                    pthread_mutex_unlock(&mutCacheLocal);
+                    return false;
+                }
+            }
+            if(numBloque >= pTdY->directory[0][0] && numBloque <= pTdY->directory[7][0]){   //pertenece al directorio remoto 2?
+                if(pthread_mutex_trylock(&mutDirRemoto2) == 0){    //obtiene el recurso
+                    int indiceDir = 0;
+                    while(indiceDir < 8){
+                        if(pTdY->directory[indiceDir][0] == numBloque){ //lo encuentra
+
+                        }
+                        ++indiceDir;
+                    }
+                }else{
+                    pthread_mutex_unlock(&mutCacheLocal);
+                    return false;
+                }
+            }
+        }
+    }
+
+
+
+    /*
+            Codigo viejo
+
     while(indiceCache < 4){
         if(cache[4][indiceCache] == numBloque && cache[5][bloqueCache] != I){   //Encontre el bloque en mi cache
 
@@ -213,13 +320,13 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             for(int i=0; i<4; ++i){
                 memory[i][bloqueMem] = cache[i][bloqueCache];   // Hago la copia del bloque modificado en cache a memoria.
             }
-            contCicCPU1 += 16;              /* En cada escritura se tardan 16 ciclos de reloj */
+            contCicCPU1 += 16;              // En cada escritura se tardan 16 ciclos de reloj
             contCicTotales += 16;
         }
         for(int i=0; i<4; ++i){ //Write allocate
             cache[i][bloqueCache] = memory[i][numBloque]; // Subo el bloque de memoria a cache.
         }
-        contCicCPU1 += 16;              /* 16 ciclos de reloj */
+        contCicCPU1 += 16;              //* 16 ciclos de reloj
         contCicTotales += 16;
         // Libero el semaforo de la memoria
         cache[4][bloqueCache] = numBloque;    // Le pone el identificador al bloque en cache.
@@ -227,7 +334,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         vecRegs[regX] = cache[(dirPrev%16)/4][bloqueCache];     // Pone la palabra en el registro.
         //Libero el recurso critico (la cache)
         return true;
-    }
+    }*/
     //Libero el recurso critico (la cache)
     return false;
 }
@@ -246,7 +353,7 @@ void* principalThread::procesador(int id, int pc, int idCPU)
     /* Asignacion de punteros locales y externos */
 
     switch(idCPU){
-      case 0:
+    case CPU0:
         pMemory = &sMem;                             /* CPU 0 Local */
         pCache = &sCache;
         pDirect = &sDirect;
@@ -258,7 +365,7 @@ void* principalThread::procesador(int id, int pc, int idCPU)
         pDirectY = &sDirect2;
         break;
 
-      case 1:
+    case CPU1:
         pMemory = &sMem1;                             /* CPU 1 Local */
         pCache = &sCache1;
         pDirect = &sDirect1;
@@ -270,7 +377,7 @@ void* principalThread::procesador(int id, int pc, int idCPU)
         pDirectY = &sDirect2;
         break;
 
-      case 2:
+    case CPU2:
         pMemory = &sMem2;                             /* CPU 2 Local */
         pCache = &sCache2;
         pDirect = &sDirect2;
@@ -313,11 +420,11 @@ void* principalThread::procesador(int id, int pc, int idCPU)
             ++contCicTotales;
             break;
         case LW:
-            lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY);          //Rx <- M(n + (Ry))
+            while(lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY) ==false) {}         //Rx <- M(n + (Ry))
             break;
         case SW:
             sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY);           //M(n + (Ry)) <- Rx
-            break;            
+            break;
         case BEQZ:
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
                 IP += (IR[3])*4;
@@ -420,8 +527,8 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev / 16;
     int bloqueCache = numBloque % 4;                                    /* Se obtiene el numero del bloque a buscar en cache */
-    bool vacio = true;    
-    int contador = 0;    
+    bool vacio = true;
+    int contador = 0;
 
     while(vacio && contador < 4){                                       /* Busqueda del bloque en cache local */
 
@@ -464,7 +571,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
 
 
- /*
+    /*
 
      Codigo viejo
    ----------------------------------------------------------------------------------------------------------------------
