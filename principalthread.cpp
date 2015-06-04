@@ -21,7 +21,7 @@ struct sCach{
 };
 struct sDirectory{
     int directory[8][5];    // Directory CPU
-};
+}; //prueba
 
 /* --------------------------------------------- */
 
