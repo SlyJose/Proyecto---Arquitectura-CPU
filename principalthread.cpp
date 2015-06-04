@@ -21,7 +21,7 @@ struct sCach{
 };
 struct sDirectory{
     int directory[8][5];    // Directory CPU
-}; //prueba
+};
 
 /* --------------------------------------------- */
 
@@ -558,6 +558,54 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         // Faltan caso: bloque en cache externa estado compartido, bloque en cache externa estado modificado
 
 }
+
+
+void principalThread::copiarAcache(sCach *pointerC, sMemory *pointerM, int bloqueCache, int columMemoria, sMemory *pointerMX, sMemory *pointerMY){
+
+    if(pointerC->cache[5][bloqueCache] == M){                                       /* Bloque a reemplazar
+                                                                                       en estado: modificado */
+        copiarAmemoria(pointerC, bloqueCache, pointerM, pointerMX, pointerMY);
+    }
+    pointerC->cache[0][bloqueCache] = pointerM->memory[0][columMemoria];            // Se copia el bloque en cache
+    pointerC->cache[1][bloqueCache] = pointerM->memory[1][columMemoria];
+    pointerC->cache[2][bloqueCache] = pointerM->memory[2][columMemoria];
+    pointerC->cache[3][bloqueCache] = pointerM->memory[3][columMemoria];
+}
+
+void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY){             /* Se recibe un bloque de cache y se copia en memoria */
+    int numeroBloque = pointerC->cache[4][bloqueCache];
+    int continuar = true;
+
+    for(int i = 0; i < 8 && continuar; ++i){                                        // Busqueda en la primera memoria
+        if(pointerM->memory[4][i] == numeroBloque){
+            pointerM->memory[0][i] = pointerC->cache[0][bloqueCache];               // Se copia el bloque de cache a la memoria
+            pointerM->memory[1][i] = pointerC->cache[1][bloqueCache];
+            pointerM->memory[2][i] = pointerC->cache[2][bloqueCache];
+            pointerM->memory[3][i] = pointerC->cache[3][bloqueCache];
+            continuar = false;
+        }
+    }
+    for(int i = 0; i < 8 && continuar; ++i){                                        // Busqueda en la segunda memoria
+        if(pointerMX->memory[4][i] == numeroBloque){
+            pointerMX->memory[0][i] = pointerC->cache[0][bloqueCache];               // Se copia el bloque de cache a la memoria
+            pointerMX->memory[1][i] = pointerC->cache[1][bloqueCache];
+            pointerMX->memory[2][i] = pointerC->cache[2][bloqueCache];
+            pointerMX->memory[3][i] = pointerC->cache[3][bloqueCache];
+            continuar = false;
+        }
+    }
+    for(int i = 0; i < 8 && continuar; ++i){                                        // Busqueda en la tercera memoria
+        if(pointerMY->memory[4][i] == numeroBloque){
+            pointerMY->memory[0][i] = pointerC->cache[0][bloqueCache];               // Se copia el bloque de cache a la memoria
+            pointerMY->memory[1][i] = pointerC->cache[1][bloqueCache];
+            pointerMY->memory[2][i] = pointerC->cache[2][bloqueCache];
+            pointerMY->memory[3][i] = pointerC->cache[3][bloqueCache];
+            continuar = false;
+        }
+    }
+}
+
+
 
 
 void principalThread::fin(int idThread, int *registros)
