@@ -660,213 +660,261 @@ QString principalThread::controlador()
 bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU){         /* Funcion que realiza el store */
     
     int dirPrev = n + vecRegs[regY];
-    int numBloque = dirPrev / 16;                                  /* Se obtiene el numero del bloque a buscar en cache */
-    int bloqueCache = numBloque % 4;                                /* Posicion en cache que debe tomar el bloque */
+    int numBloque = dirPrev / 16;                                                               /* Se obtiene el numero del bloque a buscar en cache */
+    int bloqueCache = numBloque % 4;                                                            /* Posicion en cache que debe tomar el bloque */
     bool vacio = true;
-    bool continuar = false;
+    bool continuar = true;
     int contador = 0;
+
+
+    /* La funcion SW siempre modifica el bloque a utilizar, por lo que los directorios sin importar el caso, son modificados */
+
+
+    for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
+        if(pTd->directory[i][0] == numBloque){
+            if(idCPU == 0){                                                                     /* Se coloca el estado del CPU que lo usa en 1 */
+                    pTd->directory[i][2] = 1;
+                    pTd->directory[i][3] = 0;
+                    pTd->directory[i][4] = 0;
+            }else{
+                if(idCPU == 1){
+                    pTd->directory[i][3] = 1;
+                    pTd->directory[i][2] = 0;
+                    pTd->directory[i][4] = 0;
+                }else{
+                    pTd->directory[i][4] = 1;
+                    pTd->directory[i][2] = 0;
+                    pTd->directory[i][3] = 0;
+                }
+            }
+            continuar = false;
+          }
+     }
+
+    for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio X */
+        if(pTdX->directory[i][0] == numBloque){
+            if(idCPU == 0){                                                                     /* Se coloca el estado del CPU que lo usa en 1 */
+                    pTdX->directory[i][2] = 1;
+                    pTdX->directory[i][3] = 0;
+                    pTdX->directory[i][4] = 0;
+            }else{
+                if(idCPU == 1){
+                    pTdX->directory[i][3] = 1;
+                    pTdX->directory[i][2] = 0;
+                    pTdX->directory[i][4] = 0;
+                }else{
+                    pTdX->directory[i][4] = 1;
+                    pTdX->directory[i][2] = 0;
+                    pTdX->directory[i][3] = 0;
+                }
+            }
+            continuar = false;
+          }
+     }
+
+    for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio Y */
+        if(pTdY->directory[i][0] == numBloque){
+            if(idCPU == 0){                                                                     /* Se coloca el estado del CPU que lo usa en 1 */
+                    pTdY->directory[i][2] = 1;
+                    pTdY->directory[i][3] = 0;
+                    pTdY->directory[i][4] = 0;
+            }else{
+                if(idCPU == 1){
+                    pTdY->directory[i][3] = 1;
+                    pTdY->directory[i][2] = 0;
+                    pTdY->directory[i][4] = 0;
+                }else{
+                    pTdY->directory[i][4] = 1;
+                    pTdY->directory[i][2] = 0;
+                    pTdY->directory[i][3] = 0;
+                }
+            }
+            continuar = false;
+          }
+     }
+
+
+                /* Ciclo de verificacion en cache local */
 
 
     while(vacio && contador < 4){
 
         /* CASO #1 BLOQUE EN CACHE LOCAL EN ESTADO: M */
 
-        if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == M){                   // Se verifica si se encuentra en cache local M o C
+        if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == M){                    // Se verifica si se encuentra en cache local estado M
             vacio = false;
-            pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];   /* Se almacena el contenido del registro en la posicion de la cache */
-            pTc->cache[5][bloqueCache] = M;
-            for(int i = 0; i < 8 && continuar; ++i){                   /* Verificacion de directorio local */
-                if(pTd->directory[i][0] == numBloque){
-                    pTd->directory[i][1] = M;
-                    pTd->directory[i][idCPU + 2] = 1;
-                    continuar = false;
-                }
-            }
-            for(int i = 0; i < 8 && continuar; ++i){                   /* Verificacion de directorio externo X */
-                if(pTdX->directory[i][0] == numBloque){
-                    pTdX->directory[i][1] = M;
-                    pTdX->directory[i][idCPU + 2] = 1;
-                    continuar = false;
-                }
-            }
-            for(int i = 0; i < 8 && continuar; ++i){                   /* Verificacion de directorio externo Y */
-                if(pTdY->directory[i][0] == numBloque){
-                    pTdY->directory[i][1] = M;
-                    pTdY->directory[i][idCPU + 2] = 1;
-                    continuar = false;
-                }
-            }
+            pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                                 /* Se almacena el contenido del registro en la posicion de la cache */
+            pTc->cache[5][bloqueCache] = M;            
             return true;
-        }
+        }        
+
 
 
         /* CASO #2 BLOQUE EN CACHE LOCAL EN ESTADO: C  */
 
-        if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){
+        if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){                       /* El bloque esta en cache local compartido */
             vacio = false;
-            bool continuar = true;
-            for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
-                if(pTd->directory[i][0] == numBloque){
-                    if(idCPU == 0){                                                                     /* Se coloca el estado del CPU que lo usa en 1 */
-                            pTd->directory[i][2] = 1;
-                            pTd->directory[i][3] = 0;
-                            pTd->directory[i][4] = 0;
-                    }else{
-                        if(idCPU == 1){
-                            pTd->directory[i][3] = 1;
-                            pTd->directory[i][2] = 0;
-                            pTd->directory[i][4] = 0;
-                        }else{
-                            pTd->directory[i][4] = 1;
-                            pTd->directory[i][2] = 0;
-                            pTd->directory[i][3] = 0;
-                        }
+
+            bool recorrer = true;
+            for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
+                if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = C){                     // El bloque esta compartido en el CPU externo X , el bloque esta compartido
+                    pTcX->cache[5][j] = I;
+                    recorrer = false;
+                }else{
+                    if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = M){                 // El bloque esta compartido en el CPU externo X , el bloque esta modificado
+                        copiarAmemoria(pTcX, j, pTm, pTmX, pTmY);                                // Se almacena en memoria
+                        pTcX->cache[5][j] = I;
+                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);              // Se sube el bloque a la cache local
+                        recorrer = false;
                     }
-
-                    bool recorrer = true;
-                    for(int j = 0; j < 4 && recorrer; ++j){                                  // Se modifica el estado en las caches
-                        if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = C){
-                            pTcX->cache[5][j] = I;
-                            recorrer = false;
-                        }
+                }
+            }
+            recorrer = true;
+            for(int j = 0; j < 4 && recorrer; ++j){
+                if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = C){
+                    pTcY->cache[5][j] = I;
+                    recorrer = false;
+                }else{
+                    if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = M){                // El bloque esta compartido en el CPU externo Y, el bloque esta modificado
+                        copiarAmemoria(pTcY, j, pTm, pTmX, pTmY);                               // Se almacena en memoria
+                        pTcY->cache[5][j] = I;
+                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);             // Se sube el bloque a cache local
+                        recorrer = false;
                     }
-                    for(int j = 0; j < 4 && recorrer; ++j){
-                        if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = C){
-                            pTcY->cache[5][j] = I;
-                            recorrer = false;
-                        }
-                    }
-
-
-
-
-
-                    continuar = false;
-
-
-
-
-
                 }
             }
 
-
-
+            pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                               /* Realizadas las comprobaciones, se almacena el contenido del registro en la posicion de la cache */
+            pTc->cache[5][bloqueCache] = M;
             return true;
         }
-
-
-
         ++contador;
     }
 
 
+                        /* LLegado a este punto, el bloque no se encuentra en cache local */
 
 
 
+    /* El bloque que se encuentra en la posicion donde va a caer el nuevo bloque, dependiendo de su estado, se almacena en memoria o no */
+
+    if(pTc->cache[5][bloqueCache] == M){                                                // Estado Modificado, debe guardarse en memoria
+        copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);
+    }
 
 
+            /* CASO # 3 BLOQUE EN CACHE EXTERNA */
 
 
+    bool bloqueSubido = false;                                                           // Bandera de verificacion para finalizar el SW
 
-    // meter los casos: bloque en cache local estado compartido, bloque en cache local estado invalido
-
-
-
-    /* CASO #4 BLOQUE EN NINGUNA CACHE EN ESTADO: U */
-
-    continuar = true;
-
-    for(int i = 0; i < 8 && continuar; ++i){                                                    // Busca en el directorio de CPU local el bloque
-        if(pTd->directory[i][0] == numBloque && pTd->directory[i][1] == U){
-
-            pTd->directory[i][1] = M;                                                           // Cambia su estado a modificado
-
-            if(idCPU == 0){
-                pTd->directory[i][2] = 1;                                                       // El CPU 0 lo esta utilizando
-            }else{
-                if(idCPU == 1){
-                    pTd->directory[i][3] = 1;                                                   // El CPU 1 lo esta utilizando
-                }else{
-                    pTd->directory[i][4] = 1;                                                   // El CPU 2 lo esta utilizando
-                }
+    bool recorrer = true;
+    for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
+        if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = C){                     // El bloque esta compartido en el CPU externo X , el bloque esta compartido
+            pTcX->cache[5][j] = I;
+            recorrer = false;
+            bloqueSubido = true;
+        }else{
+            if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = M){                 // El bloque esta compartido en el CPU externo X , el bloque esta modificado
+                copiarAmemoria(pTcX, j, pTm, pTmX, pTmY);                                // Se almacena en memoria
+                pTcX->cache[5][j] = I;
+                recorrer = false;
+                bloqueSubido = true;
             }
-            for(int j = 0; j < 8; ++i){                                                         // Se busca el valor en memoria
-                if(pTm->memory[4][j] == numBloque){
-                    copiarAcache(pTc, pTm, bloqueCache, j, pTmX, pTmY);
-                }
-            }
-            continuar = false;
-            return true;
         }
     }
-    for(int i = 0; i < 8 && continuar; ++i){                                                    // Busca en el directorio de CPU externo X el bloque
-        if(pTdX->directory[i][0] == numBloque && pTdX->directory[i][1] == U){
-
-            pTdX->directory[i][1] == M;
-
-            if(idCPU == 0){
-                pTdX->directory[i][2] = 1;                                                       // El CPU 0 lo esta utilizando
-            }else{
-                if(idCPU == 1){
-                    pTdX->directory[i][3] = 1;                                                   // El CPU 1 lo esta utilizando
-                }else{
-                    pTdX->directory[i][4] = 1;                                                   // El CPU 2 lo esta utilizando
-                }
+    recorrer = true;
+    for(int j = 0; j < 4 && recorrer; ++j){
+        if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = C){
+            pTcY->cache[5][j] = I;
+            recorrer = false;
+            bloqueSubido = true;
+        }else{
+            if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = M){                // El bloque esta compartido en el CPU externo Y, el bloque esta modificado
+                copiarAmemoria(pTcY, j, pTm, pTmX, pTmY);                               // Se almacena en memoria
+                pTcY->cache[5][j] = I;
+                recorrer = false;
+                bloqueSubido = true;
             }
-            for(int j = 0; j < 8; ++i){                                                          // Se busca el valor en memoria
-                if(pTm->memory[4][j] == numBloque){
-                    copiarAcache(pTc, pTmX, bloqueCache, j, pTm, pTmY);
-                }
-            }
+        }
+    }
+
+    if(bloqueSubido){                                                                   /* El bloque se encontraba en una memoria externa y fue copiado
+                                                                                          a cache local para su escritura */
+
+        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);                     // Se sube el bloque a cache local
+        pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
+        pTc->cache[5][bloqueCache] = M;
+        return true;
+    }
+
+
+                        /* LLegado a este punto, el bloque no se encuentra en ninguna cache */
+
+
+
+                 /* CASO #4 BLOQUE EN NINGUNA CACHE */
+
+    copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
+}
+
+
+void principalThread::copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY){      /* Se recibe un puntero a cache y a memoria, se copia el bloque a cache */
+
+    int columMemoria;
+    int idMemoria;
+    bool continuar = true;
+    for(int i = 0; i < 8 && continuar; ++i){
+        if(pointerM->memory[4][j] == numBloque){                                        /* El bloque se encuentra en la memoria local */
+            columMemoria = j;
+            idMemoria = 0;
             continuar = false;
-            return true;
         }
     }
     for(int i = 0; i < 8 && continuar; ++i){
-
-        if(pTdY->directory[i][0] == numBloque && pTdY->directory[i][1] == U) ){
-
-            pTdY->directory[i][1] = M;
-
-            if(idCPU == 0){
-                pTdY->directory[i][2] = 1;                                                       // El CPU 0 lo esta utilizando
-            }else{
-                if(idCPU == 1){
-                    pTdY->directory[i][3] = 1;                                                   // El CPU 1 lo esta utilizando
-                }else{
-                    pTdY->directory[i][4] = 1;                                                   // El CPU 2 lo esta utilizando
-                }
-            }
-            for(int j = 0; j < 8; ++i){                                                          // Se busca el valor en memoria
-                if(pTm->memory[4][j] == numBloque){
-                    copiarAcache(pTc, pTmY, bloqueCache, j, pTm, pTmX);
-                }
-            }
+        if(pointerMX->memory[4][j] == numBloque){                                       /* El bloque se encuentra en la memoria X */
+            columMemoria = j;
+            idMemoria = 1;
             continuar = false;
-            return true;
+        }
+    }
+    for(int i = 0; i < 8 && continuar; ++i){
+        if(pointerMY->memory[4][j] == numBloque){                                       /* El bloque se encuentra en la memoria Y */
+            columMemoria = j;
+            idMemoria = 2;
+            continuar = false;
         }
     }
 
-
-    // Faltan caso: bloque en cache externa estado compartido, bloque en cache externa estado modificado
-
-}
-
-
-void principalThread::copiarAcache(sCach *pointerC, sMemory *pointerM, int bloqueCache, int columMemoria, sMemory *pointerMX, sMemory *pointerMY){
-
-    if(pointerC->cache[5][bloqueCache] == M){                                       /* Bloque a reemplazar
-                                                                                       en estado: modificado */
+    if(pointerC->cache[5][bloqueCache] == M){                                           /* Bloque a reemplazar en estado: modificado */
         copiarAmemoria(pointerC, bloqueCache, pointerM, pointerMX, pointerMY);
     }
-    pointerC->cache[0][bloqueCache] = pointerM->memory[0][columMemoria];            // Se copia el bloque en cache
-    pointerC->cache[1][bloqueCache] = pointerM->memory[1][columMemoria];
-    pointerC->cache[2][bloqueCache] = pointerM->memory[2][columMemoria];
-    pointerC->cache[3][bloqueCache] = pointerM->memory[3][columMemoria];
+
+    switch (idMemoria) {
+    case 0:
+        pointerC->cache[0][bloqueCache] = pointerM->memory[0][columMemoria];            // Se copia el bloque en cache de memoria local
+        pointerC->cache[1][bloqueCache] = pointerM->memory[1][columMemoria];
+        pointerC->cache[2][bloqueCache] = pointerM->memory[2][columMemoria];
+        pointerC->cache[3][bloqueCache] = pointerM->memory[3][columMemoria];
+        break;
+    case 1:
+        pointerC->cache[0][bloqueCache] = pointerMX->memory[0][columMemoria];            // Se copia el bloque en cache de memoria X
+        pointerC->cache[1][bloqueCache] = pointerMX->memory[1][columMemoria];
+        pointerC->cache[2][bloqueCache] = pointerMX->memory[2][columMemoria];
+        pointerC->cache[3][bloqueCache] = pointerMX->memory[3][columMemoria];
+        break;
+    case 2:
+        pointerC->cache[0][bloqueCache] = pointerMY->memory[0][columMemoria];            // Se copia el bloque en cache de memoria Y
+        pointerC->cache[1][bloqueCache] = pointerMY->memory[1][columMemoria];
+        pointerC->cache[2][bloqueCache] = pointerMY->memory[2][columMemoria];
+        pointerC->cache[3][bloqueCache] = pointerMY->memory[3][columMemoria];
+        break;
+    }
+
+
 }
 
-void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY){             /* Se recibe un bloque de cache y se copia en memoria */
+void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY){                      /* Se recibe un puntero a cache y se copia el bloque en memoria */
     int numeroBloque = pointerC->cache[4][bloqueCache];
     int continuar = true;
 
