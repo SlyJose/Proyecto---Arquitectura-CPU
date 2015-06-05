@@ -553,21 +553,21 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             for(int i = 0; i < 8 && continuar; ++i){                   /* Verificacion de directorio local */
                 if(pTd->directory[i][0] == numBloque){
                     pTd->directory[i][1] = M;
-                    pTd->directory[i][idCPU + 1] = 1;
+                    pTd->directory[i][idCPU + 2] = 1;
                     continuar = false;
                 }
             }
             for(int i = 0; i < 8 && continuar; ++i){                   /* Verificacion de directorio externo X */
                 if(pTdX->directory[i][0] == numBloque){
                     pTdX->directory[i][1] = M;
-                    pTdX->directory[i][idCPU + 1] = 1;
+                    pTdX->directory[i][idCPU + 2] = 1;
                     continuar = false;
                 }
             }
             for(int i = 0; i < 8 && continuar; ++i){                   /* Verificacion de directorio externo Y */
                 if(pTdY->directory[i][0] == numBloque){
                     pTdY->directory[i][1] = M;
-                    pTdY->directory[i][idCPU + 1] = 1;
+                    pTdY->directory[i][idCPU + 2] = 1;
                     continuar = false;
                 }
             }
@@ -578,16 +578,27 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             /* CASO #2 BLOQUE EN CACHE LOCAL EN ESTADO: C  */
 
         if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){
-            vacio = false;
-            int lugaresCPU = 0;                                                                          // Cantidad de CPU's que tienen el bloque
-            for(int i = 0; i < 8; ++i){                                                                  /* Busqueda en directorio local */
+            vacio = false;            
+            bool continuar = true;
+            for(int i = 0; i < 8 && continuar; ++i){                                                                  /* Busqueda en directorio local */
                 if(pTd->directory[i][0] == numBloque){
 
-                    if(pTd->directory[i][2] == 1 && idCPU + !=)
+                    if(pTd->directory[i][2] == 1 && ( idCPU + 2 != 2 ) ){                               // CPU 0 tiene el bloque y no es el CPU local
 
 
+
+                    }
+
+                    if(pTd->directory[i][3] == 1 && (idCPU + 2 != 3 ) ){                                // CPU 1 tiene el bloque y no es el CPU local
+
+                    }
+
+                    if(pTd->directory[i][4] == 1 && (idCPU + 2 != 4) ){                                 // CPU 2 tiene el bloque y no es el CPU local
+
+
+                    }
+                    continuar = false;
                 }
-
             }
 
 
