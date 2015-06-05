@@ -231,69 +231,118 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         return true;
     }else{
         if(pTc->cache[5][bloqueCache] == M){    //donde va a poner el bloque esta modificado
-            /*
-             *
-             * Tengo que sacarlo de la cache y la pasa a memoria
-             *
-             */
-            if(numBloque <= pTd->directory[7][0]){  //pertenece al directorio local?
-                if(pthread_mutex_trylock(&mutDirLocal) == 0){    //obtiene el recurso
-                    int indiceDir = 0;
-                    while(indiceDir < 8){
-                        if(pTd->directory[indiceDir][0] == numBloque){   //lo encuentra
-                            if(pTd->directory[indiceDir][1] == U){  //nadie tiene el bloque en cache
-                                //lo subo de memoria
-                                if(pthread_mutex_trylock()==0){ //intenta obtener la memoria local
-                                    int indiceMem = 0;
-                                    while(indiceMem < 4){
-                                        if(pTm->memory[4][indiceMem] == numBloque){
+            // ***************** Saco el bloque de mi cache y lo pongo en memoria (la que corresponda) *****************
+            int bloqueReemplazar = pTc->cache[4][bloqueCache];
+            if(bloqueReemplazar <= pTd->directory[7][0]){  //esta en mi memoria
+                if(pthread_mutex_trylock(&mutMemLocal) == 0){
+                    for(int i=0; i<4; ++i){
+                        pTm->memory[i][bloqueReemplazar] = pTc->cache[i][bloqueCache];  //copia el bloque de cache a memoria local
+                    }
+                    pthread_mutex_unlock(&mutMemLocal);
+                }else{
+                    pthread_mutex_unlock(&mutCacheLocal);
+                    return false;
+                }
+            }
+            if(bloqueReemplazar >= pTdX->directory[0][0] && bloqueReemplazar <= pTdX->directory[7][0]){ //esta en memoria remota 1
+                if(pthread_mutex_trylock(&mutMemRemoto1) == 0){
+                    int indiceMem = 0;
+                    bool continua = true;
+                    while(indiceMem<4 && continua){
+                        if(pTmX->memory[4][indiceMem] == bloqueReemplazar){
+                            for(int i=0; i<4; ++i){
+                                pTmX->memory[i][indiceMem] = pTc->cache[i][bloqueCache];    //copia el bloque de cache a memoria remota 1
+                            }
+                            continua = false;
+                        }
+                        ++indiceMem;
+                    }
+                    pthread_mutex_unlock(&mutMemRemoto1);
+                }else{
+                    pthread_mutex_unlock(&mutCacheLocal);
+                    return false;
+                }
+            }
+            if(bloqueReemplazar >= pTdY->directory[0][0] && bloqueReemplazar <= pTdY->directory[7][0]){ //esta en memoria remota 2
+                if(pthread_mutex_trylock(&mutMemRemoto2) == 0){
+                    int indiceMem = 0;
+                    bool continua = true;
+                    while(indiceMem<4 && continua){
+                        if(pTmY->memory[4][indiceMem] == bloqueReemplazar){
+                            for(int i=0; i<4; ++i){
+                                pTmY->memory[i][indiceMem] = pTc->cache[i][bloqueCache];    //copia el bloque de cache a memoria remota 2
+                            }
+                            continua = false;
+                        }
+                        ++indiceMem;
+                    }
+                    pthread_mutex_unlock(&mutMemRemoto2);
+                }else{
+                    pthread_mutex_unlock(&mutCacheLocal);
+                    return false;
+                }
+            }
+            //==========================================================================================================
+        }
 
-                                        }
-                                        ++indiceMem;
+        /*
+        if(numBloque <= pTd->directory[7][0]){  //pertenece al directorio local?
+            if(pthread_mutex_trylock(&mutDirLocal) == 0){    //obtiene el recurso
+                int indiceDir = 0;
+                while(indiceDir < 8){
+                    if(pTd->directory[indiceDir][0] == numBloque){   //lo encuentra
+                        if(pTd->directory[indiceDir][1] == U){  //nadie tiene el bloque en cache
+                            //lo subo de memoria
+                            if(pthread_mutex_trylock()==0){ //intenta obtener la memoria local
+                                int indiceMem = 0;
+                                while(indiceMem < 4){
+                                    if(pTm->memory[4][indiceMem] == numBloque){
+
                                     }
-                                }else{
-                                    pthread_mutex_unlock(&mutDirLocal);
-                                    pthread_mutex_unlock(&mutCacheLocal);
-                                    return false;
+                                    ++indiceMem;
                                 }
+                            }else{
+                                pthread_mutex_unlock(&mutDirLocal);
+                                pthread_mutex_unlock(&mutCacheLocal);
+                                return false;
                             }
                         }
-                        ++indiceDir;
                     }
-                }else{
-                    pthread_mutex_unlock(&mutCacheLocal);
-                    return false;
+                    ++indiceDir;
                 }
-            }
-            if(numBloque >= pTdX->directory[0][0] && numBloque <= pTdX->directory[7][0]){   //pertenece al directorio remoto 1?
-                if(pthread_mutex_trylock(&mutDirRemoto1) == 0){    //obtiene el recurso
-                    int indiceDir = 0;
-                    while(indiceDir < 8){
-                        if(pTdX->directory[indiceDir][0] == numBloque){ //lo encuentra
-
-                        }
-                        ++indiceDir;
-                    }
-                }else{
-                    pthread_mutex_unlock(&mutCacheLocal);
-                    return false;
-                }
-            }
-            if(numBloque >= pTdY->directory[0][0] && numBloque <= pTdY->directory[7][0]){   //pertenece al directorio remoto 2?
-                if(pthread_mutex_trylock(&mutDirRemoto2) == 0){    //obtiene el recurso
-                    int indiceDir = 0;
-                    while(indiceDir < 8){
-                        if(pTdY->directory[indiceDir][0] == numBloque){ //lo encuentra
-
-                        }
-                        ++indiceDir;
-                    }
-                }else{
-                    pthread_mutex_unlock(&mutCacheLocal);
-                    return false;
-                }
+            }else{
+                pthread_mutex_unlock(&mutCacheLocal);
+                return false;
             }
         }
+        if(numBloque >= pTdX->directory[0][0] && numBloque <= pTdX->directory[7][0]){   //pertenece al directorio remoto 1?
+            if(pthread_mutex_trylock(&mutDirRemoto1) == 0){    //obtiene el recurso
+                int indiceDir = 0;
+                while(indiceDir < 8){
+                    if(pTdX->directory[indiceDir][0] == numBloque){ //lo encuentra
+
+                    }
+                    ++indiceDir;
+                }
+            }else{
+                pthread_mutex_unlock(&mutCacheLocal);
+                return false;
+            }
+        }
+        if(numBloque >= pTdY->directory[0][0] && numBloque <= pTdY->directory[7][0]){   //pertenece al directorio remoto 2?
+            if(pthread_mutex_trylock(&mutDirRemoto2) == 0){    //obtiene el recurso
+                int indiceDir = 0;
+                while(indiceDir < 8){
+                    if(pTdY->directory[indiceDir][0] == numBloque){ //lo encuentra
+
+                    }
+                    ++indiceDir;
+                }
+            }else{
+                pthread_mutex_unlock(&mutCacheLocal);
+                return false;
+            }
+        }*/
     }
 
 
@@ -537,7 +586,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev / 16;                                  /* Se obtiene el numero del bloque a buscar en cache */
     int bloqueCache = numBloque % 4;                                /* Posicion en cache que debe tomar el bloque */
-    bool vacio = true;    
+    bool vacio = true;
     bool continuar = false;
     int contador = 0;
 
@@ -575,7 +624,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         }
 
 
-            /* CASO #2 BLOQUE EN CACHE LOCAL EN ESTADO: C  */
+        /* CASO #2 BLOQUE EN CACHE LOCAL EN ESTADO: C  */
 
         if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){
             vacio = false;            
@@ -620,87 +669,87 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
 
 
-            // meter los casos: bloque en cache local estado compartido, bloque en cache local estado invalido
+    // meter los casos: bloque en cache local estado compartido, bloque en cache local estado invalido
 
 
 
-            /* CASO #4 BLOQUE EN NINGUNA CACHE EN ESTADO: U */
+    /* CASO #4 BLOQUE EN NINGUNA CACHE EN ESTADO: U */
 
-        continuar = true;
+    continuar = true;
 
-        for(int i = 0; i < 8 && continuar; ++i){                                                    // Busca en el directorio de CPU local el bloque
-            if(pTd->directory[i][0] == numBloque && pTd->directory[i][1] == U){
+    for(int i = 0; i < 8 && continuar; ++i){                                                    // Busca en el directorio de CPU local el bloque
+        if(pTd->directory[i][0] == numBloque && pTd->directory[i][1] == U){
 
-                pTd->directory[i][1] = M;                                                           // Cambia su estado a modificado
+            pTd->directory[i][1] = M;                                                           // Cambia su estado a modificado
 
-                if(idCPU == 0){
-                    pTd->directory[i][2] = 1;                                                       // El CPU 0 lo esta utilizando
+            if(idCPU == 0){
+                pTd->directory[i][2] = 1;                                                       // El CPU 0 lo esta utilizando
+            }else{
+                if(idCPU == 1){
+                    pTd->directory[i][3] = 1;                                                   // El CPU 1 lo esta utilizando
                 }else{
-                    if(idCPU == 1){
-                        pTd->directory[i][3] = 1;                                                   // El CPU 1 lo esta utilizando
-                    }else{
-                        pTd->directory[i][4] = 1;                                                   // El CPU 2 lo esta utilizando
-                    }
+                    pTd->directory[i][4] = 1;                                                   // El CPU 2 lo esta utilizando
                 }
-                for(int j = 0; j < 8; ++i){                                                         // Se busca el valor en memoria
-                    if(pTm->memory[4][j] == numBloque){                        
-                        copiarAcache(pTc, pTm, bloqueCache, j, pTmX, pTmY);
-                    }
-                }
-                continuar = false;
-                return true;
             }
+            for(int j = 0; j < 8; ++i){                                                         // Se busca el valor en memoria
+                if(pTm->memory[4][j] == numBloque){
+                    copiarAcache(pTc, pTm, bloqueCache, j, pTmX, pTmY);
+                }
+            }
+            continuar = false;
+            return true;
         }
-        for(int i = 0; i < 8 && continuar; ++i){                                                    // Busca en el directorio de CPU externo X el bloque
-            if(pTdX->directory[i][0] == numBloque && pTdX->directory[i][1] == U){
+    }
+    for(int i = 0; i < 8 && continuar; ++i){                                                    // Busca en el directorio de CPU externo X el bloque
+        if(pTdX->directory[i][0] == numBloque && pTdX->directory[i][1] == U){
 
-                pTdX->directory[i][1] == M;
+            pTdX->directory[i][1] == M;
 
-                if(idCPU == 0){
-                    pTdX->directory[i][2] = 1;                                                       // El CPU 0 lo esta utilizando
+            if(idCPU == 0){
+                pTdX->directory[i][2] = 1;                                                       // El CPU 0 lo esta utilizando
+            }else{
+                if(idCPU == 1){
+                    pTdX->directory[i][3] = 1;                                                   // El CPU 1 lo esta utilizando
                 }else{
-                    if(idCPU == 1){
-                        pTdX->directory[i][3] = 1;                                                   // El CPU 1 lo esta utilizando
-                    }else{
-                        pTdX->directory[i][4] = 1;                                                   // El CPU 2 lo esta utilizando
-                    }
+                    pTdX->directory[i][4] = 1;                                                   // El CPU 2 lo esta utilizando
                 }
-                for(int j = 0; j < 8; ++i){                                                          // Se busca el valor en memoria
-                    if(pTm->memory[4][j] == numBloque){                        
-                        copiarAcache(pTc, pTmX, bloqueCache, j, pTm, pTmY);
-                    }
-                }
-                continuar = false;
-                return true;
             }
+            for(int j = 0; j < 8; ++i){                                                          // Se busca el valor en memoria
+                if(pTm->memory[4][j] == numBloque){
+                    copiarAcache(pTc, pTmX, bloqueCache, j, pTm, pTmY);
+                }
+            }
+            continuar = false;
+            return true;
         }
-        for(int i = 0; i < 8 && continuar; ++i){
+    }
+    for(int i = 0; i < 8 && continuar; ++i){
 
-            if(pTdY->directory[i][0] == numBloque && pTdY->directory[i][1] == U) ){
+        if(pTdY->directory[i][0] == numBloque && pTdY->directory[i][1] == U) ){
 
-                pTdY->directory[i][1] = M;
+            pTdY->directory[i][1] = M;
 
-                if(idCPU == 0){
-                    pTdY->directory[i][2] = 1;                                                       // El CPU 0 lo esta utilizando
+            if(idCPU == 0){
+                pTdY->directory[i][2] = 1;                                                       // El CPU 0 lo esta utilizando
+            }else{
+                if(idCPU == 1){
+                    pTdY->directory[i][3] = 1;                                                   // El CPU 1 lo esta utilizando
                 }else{
-                    if(idCPU == 1){
-                        pTdY->directory[i][3] = 1;                                                   // El CPU 1 lo esta utilizando
-                    }else{
-                        pTdY->directory[i][4] = 1;                                                   // El CPU 2 lo esta utilizando
-                    }
+                    pTdY->directory[i][4] = 1;                                                   // El CPU 2 lo esta utilizando
                 }
-                for(int j = 0; j < 8; ++i){                                                          // Se busca el valor en memoria
-                    if(pTm->memory[4][j] == numBloque){
-                        copiarAcache(pTc, pTmY, bloqueCache, j, pTm, pTmX);
-                    }
-                }
-                continuar = false;
-                return true;
             }
+            for(int j = 0; j < 8; ++i){                                                          // Se busca el valor en memoria
+                if(pTm->memory[4][j] == numBloque){
+                    copiarAcache(pTc, pTmY, bloqueCache, j, pTm, pTmX);
+                }
+            }
+            continuar = false;
+            return true;
         }
+    }
 
 
-        // Faltan caso: bloque en cache externa estado compartido, bloque en cache externa estado modificado
+    // Faltan caso: bloque en cache externa estado compartido, bloque en cache externa estado modificado
 
 }
 
