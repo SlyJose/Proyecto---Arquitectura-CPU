@@ -64,15 +64,15 @@ int contCicTotales = 0;                      /* Permite sincronizar que cada CPU
 /* En la segunda parte se utilizará la variable contCicTotales totalmente */
 
 /* Mutex para los recursos críticos */
-pthread_mutex_t mutCacheLocal = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutCacheRemoto1 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutCacheRemoto2 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutMemLocal = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutMemRemoto1 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutMemRemoto2 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutDirLocal = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutDirRemoto1 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutDirRemoto2 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCache = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCache1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCache2 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutMem = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutMem1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutMem2 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutDir = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutDir1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutDir2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
 /*---------------------------------------------------*/
 
@@ -143,8 +143,6 @@ principalThread::principalThread(QString programa, int numHilos)
         }
     }
 
-
-    22032162
     for(int i=0; i<6; ++i){                     /* Se inicializa cada cache de CPU. */
         for(int j=0; j<4; ++j){
             if(i==4){
@@ -224,68 +222,123 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     int filaCache = (dirPrev%16)/4;
     
     // **************** Busco en cache local ****************
-    pthread_mutex_lock(&mutCacheLocal); //bloqueo la cache local
-    if(pTc->cache[4][bloqueCache] == numBloque && pTc->cache[5][bloqueCache] != I){
-        vecRegs[regX] = pTc->cache[filaCache][bloqueCache];
-        pthread_mutex_unlock(&mutCacheLocal);
-        return true;
-    }else{
-        if(pTc->cache[5][bloqueCache] == M){    //donde va a poner el bloque esta modificado
-            // ***************** Saco el bloque de mi cache y lo pongo en memoria (la que corresponda) *****************
-            int bloqueReemplazar = pTc->cache[4][bloqueCache];
-            if(bloqueReemplazar <= pTd->directory[7][0]){  //esta en mi memoria
-                if(pthread_mutex_trylock(&mutMemLocal) == 0){
-                    for(int i=0; i<4; ++i){
-                        pTm->memory[i][bloqueReemplazar] = pTc->cache[i][bloqueCache];  //copia el bloque de cache a memoria local
-                    }
-                    pthread_mutex_unlock(&mutMemLocal);
-                }else{
-                    pthread_mutex_unlock(&mutCacheLocal);
-                    return false;
-                }
-            }
-            if(bloqueReemplazar >= pTdX->directory[0][0] && bloqueReemplazar <= pTdX->directory[7][0]){ //esta en memoria remota 1
-                if(pthread_mutex_trylock(&mutMemRemoto1) == 0){
-                    int indiceMem = 0;
-                    bool continua = true;
-                    while(indiceMem<4 && continua){
-                        if(pTmX->memory[4][indiceMem] == bloqueReemplazar){
-                            for(int i=0; i<4; ++i){
-                                pTmX->memory[i][indiceMem] = pTc->cache[i][bloqueCache];    //copia el bloque de cache a memoria remota 1
-                            }
-                            continua = false;
-                        }
-                        ++indiceMem;
-                    }
-                    pthread_mutex_unlock(&mutMemRemoto1);
-                }else{
-                    pthread_mutex_unlock(&mutCacheLocal);
-                    return false;
-                }
-            }
-            if(bloqueReemplazar >= pTdY->directory[0][0] && bloqueReemplazar <= pTdY->directory[7][0]){ //esta en memoria remota 2
-                if(pthread_mutex_trylock(&mutMemRemoto2) == 0){
-                    int indiceMem = 0;
-                    bool continua = true;
-                    while(indiceMem<4 && continua){
-                        if(pTmY->memory[4][indiceMem] == bloqueReemplazar){
-                            for(int i=0; i<4; ++i){
-                                pTmY->memory[i][indiceMem] = pTc->cache[i][bloqueCache];    //copia el bloque de cache a memoria remota 2
-                            }
-                            continua = false;
-                        }
-                        ++indiceMem;
-                    }
-                    pthread_mutex_unlock(&mutMemRemoto2);
-                }else{
-                    pthread_mutex_unlock(&mutCacheLocal);
-                    return false;
-                }
-            }
-            //==========================================================================================================
-        }
 
-        /*
+    int resultLockCache;
+    switch(idCPU){
+    case CPU0:
+        resultLockCache = pthread_mutex_trylock(&mutCache);
+        break;
+    case CPU1:
+        resultLockCache = pthread_mutex_trylock(&mutCache1);
+        break;
+    case CPU2:
+        resultLockCache = pthread_mutex_trylock(&mutCache2);
+        break;
+    }
+    if(resultLockCache == 0){
+        if(pTc->cache[4][bloqueCache] == numBloque && pTc->cache[5][bloqueCache] != I){
+            vecRegs[regX] = pTc->cache[filaCache][bloqueCache];
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
+            return true;
+        }else{
+            if(pTc->cache[5][bloqueCache] == M){    //donde va a poner el bloque esta modificado
+                // ***************** Saco el bloque de mi cache y lo pongo en memoria (la que corresponda) *****************
+                int bloqueReemplazar = pTc->cache[4][bloqueCache];
+                if(bloqueReemplazar <= pTd->directory[7][0]){  //esta en mi memoria
+                    int resultLockDir;
+                    switch(idCPU){
+                    case CPU0:
+                        resultLockDir = pthread_mutex_trylock(&mutDir);
+                        break;
+                    case CPU1:
+                        resultLockDir = pthread_mutex_trylock(&mutDir1);
+                        break;
+                    case CPU2:
+                        resultLockDir = pthread_mutex_trylock(&mutDir2);
+                        break;
+                    }
+                    if(resultLockCache == 0){
+                        for(int i=0; i<4; ++i){
+                            pTm->memory[i][bloqueReemplazar] = pTc->cache[i][bloqueCache];  //copia el bloque de cache a memoria local
+                        }
+                        switch(idCPU){
+                        case CPU0:
+                            pthread_mutex_unlock(&mutDir);
+                            break;
+                        case CPU1:
+                            pthread_mutex_unlock(&mutDir1);
+                            break;
+                        case CPU2:
+                            pthread_mutex_unlock(&mutDir1);
+                            break;
+                        }
+                    }else{
+                        switch(idCPU){
+                        case CPU0:
+                            pthread_mutex_unlock(&mutCache);
+                            break;
+                        case CPU1:
+                            pthread_mutex_unlock(&mutCache1);
+                            break;
+                        case CPU2:
+                            pthread_mutex_unlock(&mutCache2);
+                            break;
+                        }
+                        return false;
+                    }
+                }
+                if(bloqueReemplazar >= pTdX->directory[0][0] && bloqueReemplazar <= pTdX->directory[7][0]){ //esta en memoria remota 1
+                    if(pthread_mutex_trylock(&mutMem1) == 0){
+                        int indiceMem = 0;
+                        bool continua = true;
+                        while(indiceMem<4 && continua){
+                            if(pTmX->memory[4][indiceMem] == bloqueReemplazar){
+                                for(int i=0; i<4; ++i){
+                                    pTmX->memory[i][indiceMem] = pTc->cache[i][bloqueCache];    //copia el bloque de cache a memoria remota 1
+                                }
+                                continua = false;
+                            }
+                            ++indiceMem;
+                        }
+                        pthread_mutex_unlock(&mutMem1);
+                    }else{
+                        pthread_mutex_unlock(&mutCache);
+                        return false;
+                    }
+                }
+                if(bloqueReemplazar >= pTdY->directory[0][0] && bloqueReemplazar <= pTdY->directory[7][0]){ //esta en memoria remota 2
+                    if(pthread_mutex_trylock(&mutMem2) == 0){
+                        int indiceMem = 0;
+                        bool continua = true;
+                        while(indiceMem<4 && continua){
+                            if(pTmY->memory[4][indiceMem] == bloqueReemplazar){
+                                for(int i=0; i<4; ++i){
+                                    pTmY->memory[i][indiceMem] = pTc->cache[i][bloqueCache];    //copia el bloque de cache a memoria remota 2
+                                }
+                                continua = false;
+                            }
+                            ++indiceMem;
+                        }
+                        pthread_mutex_unlock(&mutMem2);
+                    }else{
+                        pthread_mutex_unlock(&mutCache);
+                        return false;
+                    }
+                }
+                //==========================================================================================================
+            }
+
+            /*
         if(numBloque <= pTd->directory[7][0]){  //pertenece al directorio local?
             if(pthread_mutex_trylock(&mutDirLocal) == 0){    //obtiene el recurso
                 int indiceDir = 0;
@@ -343,6 +396,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 return false;
             }
         }*/
+        }
+    }else{
+        return false;
     }
 
 
@@ -479,7 +535,9 @@ void* principalThread::procesador(int id, int pc, int idCPU)
             ++contCicTotales;
             break;
         case LW:
-            while(lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY) ==false) {}         //Rx <- M(n + (Ry))
+            while(lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY) == false) {
+
+            }         //Rx <- M(n + (Ry))
             break;
         case SW:
             sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY);           //M(n + (Ry)) <- Rx
@@ -627,7 +685,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         /* CASO #2 BLOQUE EN CACHE LOCAL EN ESTADO: C  */
 
         if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){
-            vacio = false;            
+            vacio = false;
             bool continuar = true;
             for(int i = 0; i < 8 && continuar; ++i){                                                                  /* Busqueda en directorio local */
                 if(pTd->directory[i][0] == numBloque){
