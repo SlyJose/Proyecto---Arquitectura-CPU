@@ -687,8 +687,12 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){
             vacio = false;
             bool continuar = true;
-            for(int i = 0; i < 8 && continuar; ++i){                                                                  /* Busqueda en directorio local */
+            for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
                 if(pTd->directory[i][0] == numBloque){
+
+
+
+
 
                     if(pTd->directory[i][2] == 1 && ( idCPU + 2 != 2 ) ){                               // CPU 0 tiene el bloque y no es el CPU local
 
@@ -705,6 +709,11 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
                     }
                     continuar = false;
+
+
+
+
+
                 }
             }
 
