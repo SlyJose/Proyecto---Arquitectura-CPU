@@ -708,20 +708,40 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             for(int i = 0; i < 8 && continuar; ++i){                                                                  /* Busqueda en directorio local */
                 if(pTd->directory[i][0] == numBloque){
 
-                    if(pTd->directory[i][2] == 1 && ( idCPU + 2 != 2 ) ){                               // CPU 0 tiene el bloque y no es el CPU local
-
-
-
+                    if(idCPU == 0){                                                                     /* Se coloca el estado del CPU que lo usa en 1 */
+                            pTd->directory[i][2] = 1;
+                            pTd->directory[i][3] = 0;
+                            pTd->directory[i][4] = 0;
+                    }else{
+                        if(idCPU == 1){
+                            pTd->directory[i][3] = 1;
+                            pTd->directory[i][2] = 0;
+                            pTd->directory[i][4] = 0;
+                        }else{
+                            pTd->directory[i][4] = 1;
+                            pTd->directory[i][2] = 0;
+                            pTd->directory[i][3] = 0;
+                        }
                     }
 
-                    if(pTd->directory[i][3] == 1 && (idCPU + 2 != 3 ) ){                                // CPU 1 tiene el bloque y no es el CPU local
-
+                    bool recorrer = true;
+                    for(int j = 0; j < 4 && recorrer; ++j){                                  // Se modifica el estado en las caches
+                        if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = C){
+                            pTcX->cache[5][j] = I;
+                            recorrer = false;
+                        }
+                    }
+                    for(int j = 0; j < 4 && recorrer; ++j){
+                        if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = C){
+                            pTcY->cache[5][j] = I;
+                            recorrer = false;
+                        }
                     }
 
-                    if(pTd->directory[i][4] == 1 && (idCPU + 2 != 4) ){                                 // CPU 2 tiene el bloque y no es el CPU local
 
 
-                    }
+
+
                     continuar = false;
                 }
             }
