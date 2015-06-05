@@ -188,21 +188,59 @@ principalThread::principalThread(QString programa, int numHilos)
 
           B   E   P0  P1  P2
         ---------------------
-        | 0 | C | 1 |   |   |
+        | 0 | C | 1 | 1 | 1 |
         ---------------------
-        | 1 | M | 1 | 0 | 0 |
+        | 1 | M | 0 | 1 | 0 |
         ---------------------
-        | 2 | U |   |   |   |
+        | 2 | U | 0 | 0 | 0 |
         ---------------------
-        | 3 |   |   |   |   |
+        | 3 | M | 0 | 0 | 1 |
         ---------------------
         | 4 | C | 1 | 0 | 1 |
         ---------------------
-        | 5 |   |   |   |   |
+        | 5 | C | 0 | 1 | 1 |
         ---------------------
-        | 6 |   |   |   |   |
+        | 6 | M | 1 | 0 | 0 |
         ---------------------
         | 7 |   |   |   |   |
+        ---------------------
+
+          B    E   P0  P1  P2
+        ---------------------
+        | 8  | C | 1 | 1 | 1 |
+        ---------------------
+        | 9  | M | 0 | 1 | 0 |
+        ---------------------
+        | 10 | U | 0 | 0 | 0 |
+        ---------------------
+        | 11 | M | 0 | 0 | 1 |
+        ---------------------
+        | 12 | C | 1 | 0 | 1 |
+        ---------------------
+        | 13 | C | 0 | 1 | 1 |
+        ---------------------
+        | 14 | M | 1 | 0 | 0 |
+        ---------------------
+        | 15 |   |   |   |   |
+        ---------------------
+
+          B    E   P0  P1  P2
+        ---------------------
+        | 16 | C | 1 | 1 | 1 |
+        ---------------------
+        | 17 | M | 0 | 1 | 0 |
+        ---------------------
+        | 18 | U | 0 | 0 | 0 |
+        ---------------------
+        | 19 | M | 0 | 0 | 1 |
+        ---------------------
+        | 20 | C | 1 | 0 | 1 |
+        ---------------------
+        | 21 | C | 0 | 1 | 1 |
+        ---------------------
+        | 22 | M | 1 | 0 | 0 |
+        ---------------------
+        | 23 |   |   |   |   |
         ---------------------
 
      */
@@ -221,10 +259,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     int bloqueCache = numBloque%4;  /* Numero del bloque a buscar en el cache*/
     int filaCache = (dirPrev%16)/4;
     
-    // ----------------------------------------------
-    // |            Busco en cache local            |
-    // ----------------------------------------------
-
     int resultLockCache;
     switch(idCPU){  //intento bloquear la cache que corresponde a la local dependiendo de cual CPU soy
     case CPU0:
@@ -253,15 +287,16 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             }
             return true;
         }else{      // Hay un fallo de caché :(
-            int bloqueReemplazar = pTc->cache[4][bloqueCache];
 
-            // -------------------------------------------------------------------------------------
+            // ----------------------------------------------------------------------------------
             // |        Quito el bloque modificado , que le voy a caer encima, de la cache      |
-            // -------------------------------------------------------------------------------------
+            // ----------------------------------------------------------------------------------
 
             // Saco el bloque de mi cache y lo guardo en la memoria que corresponda
             // pero tengo que ir a ponerlo como "uncached" en el directorio que corresponda.
             if(pTc->cache[5][bloqueCache] == M){    //donde va a poner el bloque esta modificado?
+
+                int bloqueReemplazar = pTc->cache[4][bloqueCache];
 
                 if(pTd->directory[0][0]<= bloqueReemplazar  && bloqueReemplazar <= pTd->directory[7][0]){  //esta en mi memoria?
                     int resultLockDir;
@@ -426,12 +461,12 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             // |        Subo el bloque de memoria a cache (Write allocate)     |
             // -----------------------------------------------------------------
 
-            // Tengo que ver si alguien lo tiene modificado en su cache primero
+            // Tengo que ver si alguien lo tiene modificado en su directorio primero
             // y ademas se que no lo tengo en mi cache local, pero puede que el
             // bloque si me pertenezca -> lo tengo en mi directorio
-            if(pTd->directory[0][0] <= numBloque && numBLoque <= pTd->directory[7][0]){ //el bloque que tengo que subir me pertenece a mi
+            if(pTd->directory[0][0] <= numBloque && numBLoque <= pTd->directory[7][0]){ //el bloque que tengo que subir me pertenece a mi?
                 int resultBloqueDirect;
-                switch(idCPU){  //bloqueo directorio local
+                switch(idCPU){  //trato de bloquear el directorio local
                 case CPU0:
                     resultBloqueDirect = pthread_mutex_trylock(&mutDir);
                     break;
@@ -442,9 +477,79 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     resultBloqueDirect = pthread_mutex_trylock(&mutDir2);
                     break;
                 }
-                if(resultBloqueDirect == 0){
+                if(resultBloqueDirect == 0){    //obtengo el bloqueo del directorio local
+                    int indiceDirect = 0;
+                    bool encontrado = false;
+                    int indicePosMemDir = numBloque%8;
+                    if(pTd->directory[indicePosMemDir][0] == numBloque){    //lo ubico en mi directorio
+                        if(pTd->directory[indicePosMemDir][1] == M){   //esta modificado en algun lado?
+                            switch(idCPU){
+                            case CPU0:
+                                if(pTd->directory[indiceDirect][3] == 1){       // CPU1 lo tiene modificado?
+                                    if(pthread_mutex_trylock(&mutCache1) == 0){     //intento bloquear mutCache1
+                                        // Me dieron la cache entonces la copio a mi memoria, le cambio el estado
+                                        // a compartido y lo subo a cache
+                                    }else{
+                                        // Libero los recursos que habia adquirido
+                                        pthread_mutex_unlock(&mutDir);
+                                        pthread_mutex_unlock(&mutCache);
+                                        return false;
+                                    }
+                                }
+                                if(pTd->directory[indiceDirect][4] == 1){       // CPU2 lo tiene modificado?
+                                    if(pthread_mutex_trylock(&mutCache2) == 0){     //intento bloquear mutCache2
 
-                }else{
+                                    }else{
+                                        // Libero los recursos que habia adquirido
+                                        pthread_mutex_unlock(&mutDir);
+                                        pthread_mutex_unlock(&mutCache);
+                                        return false;
+                                    }
+                                }
+                                break;
+                            case CPU1:
+                                if(pTd->directory[indiceDirect][2] == 1){
+                                    if(pthread_mutex_trylock(&mutCache) == 0){      //intento bloquear mutCache
+                                    }else{
+                                        //libero el directorio
+                                        //libero la cache local
+                                        return false;
+                                    }
+                                }
+                                if(pTd->directory[indiceDirect][4] == 1){
+                                    if(pthread_mutex_trylock(&mutCache2) == 0){     //intento bloquear mutCache2
+                                    }else{
+                                        //libero el directorio
+                                        //libero la cache local
+                                        return false;
+                                    }
+                                }
+                                break;
+                            case CPU2:
+                                if(pTd->directory[indiceDirect][2] == 1){
+                                    if(pthread_mutex_trylock(&mutCache) == 0){      //intento bloquear mutCache
+                                    }else{
+                                        //libero el directorio
+                                        //libero la cache local
+                                        return false;
+                                    }
+                                }
+                                if(pTd->directory[indiceDirect][3] == 1){
+                                    if(pthread_mutex_trylock(&mutCache1) == 0){     //intento bloquear mutCache1
+                                    }else{
+                                        //libero el directorio
+                                        //libero la cache local
+                                        return false;
+                                    }
+                                }
+                                break;
+                            }
+                        }else{
+                            //subo el bloque de memoria
+
+                        }
+                    }
+                }else{  //no me dieron el bloqueo del directorio local
                     switch(idCPU){
                     case CPU0:
                         pthread_mutex_unlock(&mutCache);
@@ -459,10 +564,10 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     return false;
                 }
             }
-            if(){
+            if(pTdX->directory[0][0] <= numBloque && numBLoque <= pTdX->directory[7][0]){   //el bloque que tengo que subir esta en el directorio remoto 1
 
             }
-            if(){
+            if(pTdY->directory[0][0] <= numBloque && numBLoque <= pTdY->directory[7][0]){   //el bloque que tengo que subir esta en el directorio remoto 2
 
             }
 
