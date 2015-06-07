@@ -857,7 +857,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
         /* CASO #2 BLOQUE EN CACHE LOCAL EN ESTADO: C  */
 
-        if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){                       /* El bloque esta en cache local compartido */
+        if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){                     /* El bloque esta en cache local compartido */
             vacio = false;
 
             bool recorrer = true;
