@@ -871,8 +871,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 }else{
                     if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = M){                 // El bloque esta compartido en el CPU externo X , el bloque esta modificado
                         copiarAmemoria(pTcX, j, pTm, pTmX, pTmY);                                // Se almacena en memoria
-                        pTcX->cache[5][j] = I;
-                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);              // Se sube el bloque a la cache local
+                        pTcX->cache[5][j] = I;                        
                         recorrer = false;
                     }
                 }
@@ -885,13 +884,12 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 }else{
                     if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = M){                // El bloque esta compartido en el CPU externo Y, el bloque esta modificado
                         copiarAmemoria(pTcY, j, pTm, pTmX, pTmY);                               // Se almacena en memoria
-                        pTcY->cache[5][j] = I;
-                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);             // Se sube el bloque a cache local
+                        pTcY->cache[5][j] = I;                        
                         recorrer = false;
                     }
                 }
             }
-
+            copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);                          // Se sube el bloque a la cache local
             pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                               /* Realizadas las comprobaciones, se almacena el contenido del registro en la posicion de la cache */
             pTc->cache[5][bloqueCache] = M;
             return true;
@@ -1019,32 +1017,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 void principalThread::copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY){      /* Se recibe un puntero a cache y a memoria, se copia el bloque a cache */
 
     int columMemoria;
-    int idMemoria;
-    bool continuar = true;
-    for(int i = 0; i < 8 && continuar; ++i){
-        if(pointerM->memory[4][j] == numBloque){                                        /* El bloque se encuentra en la memoria local */
-            columMemoria = j;
-            idMemoria = 0;
-            continuar = false;
-        }
-    }
-    for(int i = 0; i < 8 && continuar; ++i){
-        if(pointerMX->memory[4][j] == numBloque){                                       /* El bloque se encuentra en la memoria X */
-            columMemoria = j;
-            idMemoria = 1;
-            continuar = false;
-        }
-    }
-    for(int i = 0; i < 8 && continuar; ++i){
-        if(pointerMY->memory[4][j] == numBloque){                                       /* El bloque se encuentra en la memoria Y */
-            columMemoria = j;
-            idMemoria = 2;
-            continuar = false;
-        }
-    }
+    int idMemoria;    
 
-    if(pointerC->cache[5][bloqueCache] == M){                                           /* Bloque a reemplazar en estado: modificado */
-        copiarAmemoria(pointerC, bloqueCache, pointerM, pointerMX, pointerMY);
+    columMemoria = numBloque % 8;                                                         // Columna del bloque en memoria
+
+    if(numBloque < 8){                                                                    /* Se ubica la memoria donde se encuentra el bloque */
+        idMemoria = 0;
+    }else{
+        if(numBloque > 7 && numBloque < 16){
+            idMemoria = 1;
+        }else{
+            idMemoria = 2;
+        }
     }
 
     switch (idMemoria) {
@@ -1067,40 +1051,43 @@ void principalThread::copiarAcache(sCach *pointerC, int bloqueCache, int numBloq
         pointerC->cache[3][bloqueCache] = pointerMY->memory[3][columMemoria];
         break;
     }
-
-
 }
 
 void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY){                      /* Se recibe un puntero a cache y se copia el bloque en memoria */
-    int numeroBloque = pointerC->cache[4][bloqueCache];
-    int continuar = true;
 
-    for(int i = 0; i < 8 && continuar; ++i){                                        // Busqueda en la primera memoria
-        if(pointerM->memory[4][i] == numeroBloque){
-            pointerM->memory[0][i] = pointerC->cache[0][bloqueCache];               // Se copia el bloque de cache a la memoria
-            pointerM->memory[1][i] = pointerC->cache[1][bloqueCache];
-            pointerM->memory[2][i] = pointerC->cache[2][bloqueCache];
-            pointerM->memory[3][i] = pointerC->cache[3][bloqueCache];
-            continuar = false;
+    int numeroBloque = pointerC->cache[4][bloqueCache];
+    int columMemoria = numBloque % 8;
+    int idMemoria;
+
+    if(numeroBloque < 8){                                                            /* Se ubica la memoria donde se encuentra el bloque */
+        idMemoria = 0;
+    }else{
+        if(numeroBloque > 7 && numeroBloque < 16){
+            idMemoria = 1;
+        }else{
+            idMemoria = 2;
         }
     }
-    for(int i = 0; i < 8 && continuar; ++i){                                        // Busqueda en la segunda memoria
-        if(pointerMX->memory[4][i] == numeroBloque){
-            pointerMX->memory[0][i] = pointerC->cache[0][bloqueCache];               // Se copia el bloque de cache a la memoria
-            pointerMX->memory[1][i] = pointerC->cache[1][bloqueCache];
-            pointerMX->memory[2][i] = pointerC->cache[2][bloqueCache];
-            pointerMX->memory[3][i] = pointerC->cache[3][bloqueCache];
-            continuar = false;
-        }
-    }
-    for(int i = 0; i < 8 && continuar; ++i){                                        // Busqueda en la tercera memoria
-        if(pointerMY->memory[4][i] == numeroBloque){
-            pointerMY->memory[0][i] = pointerC->cache[0][bloqueCache];               // Se copia el bloque de cache a la memoria
-            pointerMY->memory[1][i] = pointerC->cache[1][bloqueCache];
-            pointerMY->memory[2][i] = pointerC->cache[2][bloqueCache];
-            pointerMY->memory[3][i] = pointerC->cache[3][bloqueCache];
-            continuar = false;
-        }
+
+    switch (idMemoria) {
+    case 0:
+        pointerM->memory[0][columMemoria] = pointerC->cache[0][bloqueCache];               // Se copia el bloque de cache a la memoria local
+        pointerM->memory[1][columMemoria] = pointerC->cache[1][bloqueCache];
+        pointerM->memory[2][columMemoria] = pointerC->cache[2][bloqueCache];
+        pointerM->memory[3][columMemoria] = pointerC->cache[3][bloqueCache];
+        break;
+    case 1:
+        pointerMX->memory[0][columMemoria] = pointerC->cache[0][bloqueCache];               // Se copia el bloque de cache a la memoria externa X
+        pointerMX->memory[1][columMemoria] = pointerC->cache[1][bloqueCache];
+        pointerMX->memory[2][columMemoria] = pointerC->cache[2][bloqueCache];
+        pointerMX->memory[3][columMemoria] = pointerC->cache[3][bloqueCache];
+        break;
+    case 2:
+        pointerMY->memory[0][columMemoria] = pointerC->cache[0][bloqueCache];               // Se copia el bloque de cache a la memoria externa Y
+        pointerMY->memory[1][columMemoria] = pointerC->cache[1][bloqueCache];
+        pointerMY->memory[2][columMemoria] = pointerC->cache[2][bloqueCache];
+        pointerMY->memory[3][columMemoria] = pointerC->cache[3][bloqueCache];
+        break;
     }
 }
 
