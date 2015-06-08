@@ -489,6 +489,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     if(pthread_mutex_trylock(&mutCache1) == 0){     //intento bloquear mutCache1
                                         // Me dieron la cache entonces la copio a mi memoria, le cambio el estado
                                         // a compartido y lo subo a cache
+                                        // tengo q intentar bloquear el directorio de CPU1.
                                     }else{
                                         // Libero los recursos que habia adquirido
                                         pthread_mutex_unlock(&mutDir);
