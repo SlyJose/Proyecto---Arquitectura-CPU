@@ -762,20 +762,12 @@ QString principalThread::controlador()
     return estadisticas;
 }
 
-
-bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU){         /* Funcion que realiza el store */
-    
-    int dirPrev = n + vecRegs[regY];
-    int numBloque = dirPrev / 16;                                                               /* Se obtiene el numero del bloque a buscar en cache */
-    int bloqueCache = numBloque % 4;                                                            /* Posicion en cache que debe tomar el bloque */
-    bool vacio = true;
-    bool continuar = true;
-    int contador = 0;
-
-
+void principalThread::modificaDirectorioBloque(int numBloque, sCach *pTd, sCach *pTdX, sCach *pTdY)                                                /* Modificacion de directorio donde se halla el bloque a escribir */
+{
     /* La funcion SW siempre modifica el bloque a utilizar, por lo que los directorios sin importar el caso, son modificados */
 
 
+    bool continuar = true;
     for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
         if(pTd->directory[i][0] == numBloque){
             pTd->directory[i][1] = M;
@@ -841,6 +833,23 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             continuar = false;
           }
      }
+}
+
+
+bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU){         /* Funcion que realiza el store */
+    
+    int dirPrev = n + vecRegs[regY];
+    int numBloque = dirPrev / 16;                                                               /* Se obtiene el numero del bloque a buscar en cache */
+    int bloqueCache = numBloque % 4;                                                            /* Posicion en cache que debe tomar el bloque */
+    bool vacio = true;    
+    int contador = 0;
+
+    int resultBlockCache;                                                                     // Banderas de verificacion que indican si el recurso fue bloqueado de forma exitosa
+    int resultBlockDirect;
+    int resultBlockCacheX;
+    int resultBlockDirectX;
+    int resultBlockCacheY;
+    int resultBlockDirectY;
 
 
                 /* Ciclo de verificacion en cache local */
@@ -850,51 +859,111 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
         /* CASO #1 BLOQUE EN CACHE LOCAL EN ESTADO: M */
 
-        if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == M){                    // Se verifica si se encuentra en cache local estado M
-            vacio = false;
-            pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                                 /* Se almacena el contenido del registro en la posicion de la cache */
-            pTc->cache[5][bloqueCache] = M;            
-            return true;
-        }        
+
+        switch (idCPU) {                                                                                 // Bloqueo de recursos
+        case CPU0:
+            resultBlockCache = pthread_mutex_trylock(&mutCache);
+            break;
+        case CPU1:
+            resultBlockCache = pthread_mutex_trylock(&mutCache1);
+            break;
+        case CPU2:
+            resultBlockCache = pthread_mutex_trylock(&mutCache2);
+            break;
+        }
+
+        if(resultBlockCache == 0){                                                                       // Recurso bloqueado de forma exitosa
+            if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == M){                    // Se verifica si se encuentra en cache local estado M
+                vacio = false;
+                pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                                 /* Se almacena el contenido del registro en la posicion de la cache */
+                pTc->cache[5][bloqueCache] = M;
+
+                switch(idCPU){                                                                          // Libera la cache local
+                case CPU0:
+                    pthread_mutex_unlock(&mutCache);
+                    break;
+                case CPU1:
+                    pthread_mutex_unlock(&mutCache1);
+                    break;
+                case CPU2:
+                    pthread_mutex_unlock(&mutCache2);
+                    break;
+                }
+                return true;
+            }
+        }else{
+            return false;
+        }
 
 
 
         /* CASO #2 BLOQUE EN CACHE LOCAL EN ESTADO: C  */
 
-        if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){                     /* El bloque esta en cache local compartido */
-            vacio = false;
-
-            bool recorrer = true;
-            for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
-                if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = C){                     // El bloque esta compartido en el CPU externo X , el bloque esta compartido
-                    pTcX->cache[5][j] = I;
-                    recorrer = false;
-                }else{
-                    if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = M){                 // El bloque esta compartido en el CPU externo X , el bloque esta modificado
-                        copiarAmemoria(pTcX, j, pTm, pTmX, pTmY);                                // Se almacena en memoria
-                        pTcX->cache[5][j] = I;                        
-                        recorrer = false;
-                    }
-                }
-            }
-            recorrer = true;
-            for(int j = 0; j < 4 && recorrer; ++j){
-                if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = C){
-                    pTcY->cache[5][j] = I;
-                    recorrer = false;
-                }else{
-                    if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = M){                // El bloque esta compartido en el CPU externo Y, el bloque esta modificado
-                        copiarAmemoria(pTcY, j, pTm, pTmX, pTmY);                               // Se almacena en memoria
-                        pTcY->cache[5][j] = I;                        
-                        recorrer = false;
-                    }
-                }
-            }
-            copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);                          // Se sube el bloque a la cache local
-            pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                               /* Realizadas las comprobaciones, se almacena el contenido del registro en la posicion de la cache */
-            pTc->cache[5][bloqueCache] = M;
-            return true;
+        switch (idCPU) {                                                                                 // Bloqueo de cache local
+        case CPU0:
+            resultBlockCache = pthread_mutex_trylock(&mutCache);
+            break;
+        case CPU1:
+            resultBlockCache = pthread_mutex_trylock(&mutCache1);
+            break;
+        case CPU2:
+            resultBlockCache = pthread_mutex_trylock(&mutCache2);
+            break;
         }
+
+        if(resultBlockCache == 0){
+            if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){                     /* El bloque esta en cache local compartido */
+                vacio = false;
+                bool recorrer = true;
+
+                if(idCPU != 0){                                                                           /* Se bloquean las caches externas */
+                    resultBlockCacheX = pthread_mutex_trylock(&mutCache);
+                    if(resultBlockCacheX != 0){
+                        return false;    // No se logra bloquear la cache en CPU 0
+                    }
+                }
+                if(idCPU != 1){
+                    resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
+                    if(resultBlockCacheX != 0){
+                        return false;    // No se logra bloquear la cache en CPU 1
+                    }
+                }
+
+                if(idCPU != 2){
+                    resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
+                    if(resultBlockDirectY != 0){
+                        return false;     // No se logra bloquear la cache en CPU 2
+                    }
+                }
+
+                // bloquear los directorios y llamar a modificaDirectorioBloque
+
+
+                for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
+                    if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = C){                     // El bloque esta compartido en el CPU externo X , el bloque esta compartido
+                        pTcX->cache[5][j] = I;
+                        recorrer = false;
+                    }
+                }
+                recorrer = true;
+                for(int j = 0; j < 4 && recorrer; ++j){
+                    if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = C){
+                        pTcY->cache[5][j] = I;
+                        recorrer = false;
+                    }
+                }
+                copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);                          // Se sube el bloque a la cache local
+                pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                               /* Realizadas las comprobaciones, se almacena el contenido del registro en la posicion de la cache */
+                pTc->cache[5][bloqueCache] = M;
+
+                //liberar recursos
+
+                return true;
+            }
+        }else{
+            return false;               // No se logra bloquear la cache local
+        }
+
         ++contador;
     }
 
