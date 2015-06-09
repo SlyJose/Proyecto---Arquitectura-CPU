@@ -192,17 +192,17 @@ principalThread::principalThread(QString programa, int numHilos)
         ---------------------
         | 1 | C | 1 | 1 | 0 |
         ---------------------
-        | 2 | U | 0 | 0 | 0 |
+        | 2 | C | 0 | 1 | 1 |
         ---------------------
-        | 3 | M | 0 | 0 | 1 |
+        | 3 | C | 0 | 1 | 1 |
         ---------------------
         | 4 | C | 1 | 0 | 1 |
         ---------------------
         | 5 | C | 0 | 1 | 1 |
         ---------------------
-        | 6 | M | 1 | 0 | 0 |
+        | 6 | C | 1 | 1 | 0 |
         ---------------------
-        | 7 |   |   |   |   |
+        | 7 | C | 1 | 0 | 1 |
         ---------------------
 
           B    E   P0  P1  P2
@@ -611,12 +611,12 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     int posDirectorio = numBloque%8;
                     if(pTdX->directory[posDirectorio][0] == numBloque){   // Ubico el bloque en el directorio
                         if(pTdX->directory[posDirectorio][1] == M){     //Esta modificado?
-                            switch(idCPU){
+                            switch(idCPU){//busco donde esta modificado
                             case CPU0:
                                 if(pTdX->directory[posDirectorio][3] == 1){
                                     if(pthread_mutex_trylock(&mutCache1) == 0){
                                         copiarAmemoria(pTmX, pTcX, numBloque);
-                                        pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio
+                                        pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio remoto 1
                                         pTdX->directory[posDirectorio][2] = 1;
                                     }else{
                                         //libero directorio y cache
@@ -628,7 +628,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 if(pTdX->directory[posDirectorio][4] == 1){
                                     if(pthread_mutex_trylock(&mutCache2) == 0){
                                         copiarAmemoria(pTmX, pTcY, numBloque);
-                                        pTdX->directory[posDirectorio][1] = C;
+                                        pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio remoto 1
                                         pTdX->directory[posDirectorio][2] = 1;
                                     }else{
                                         //libero directorio y cache
@@ -639,13 +639,59 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 break;
                             case CPU1:
+                                if(pTdX->directory[posDirectorio][2] == 1){
+                                    if(pthread_mutex_trylock(&mutCache)){
+                                        copiarAmemoria(pTmX, pTcX, numBloque);
+                                        pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio remoto 1
+                                        pTdX->directory[posDirectorio][3] = 1;
+                                    }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        pthread_mutex_unlock(&mutCache1);
+                                        return false;
+                                    }
+
+                                }
+                                if(pTdX->directory[posDirectorio][4] == 1){
+                                    if(pthread_mutex_trylock(&mutCache2)){
+                                        copiarAmemoria(pTmX, pTcY, numBloque);
+                                        pTdX->directory[posDirectorio][1] = C;
+                                        pTdX->directory[posDirectorio][3] = 1;
+                                    }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        pthread_mutex_unlock(&mutCache1);
+                                        return false;
+                                    }
+                                }
                                 break;
                             case CPU2:
+                                if(pTdX->directory[posDirectorio][2] == 1){
+                                    if(pthread_mutex_trylock(&mutCache) == 0){
+                                        copiarAmemoria(pTmX, pTcX, numBloque);
+                                        pTdX->directory[posDirectorio][1] = C;
+                                        pTdX->directory[posDirectorio][4] = 1;
+
+                                    }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        pthread_mutex_unlock(&mutCache2);
+                                        return false;
+                                    }
+                                }
+                                if(pTdX->directory[posDirectorio][3] == 1){
+                                    if(pthread_mutex_trylock(&mutCache1) == 0){
+                                        copiarAmemoria(pTmX, pTcY, numBloque);
+                                        pTdX->directory[posDirectorio][1] = C;
+                                        pTdX->directory[posDirectorio][4] = 1;
+                                    }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        pthread_mutex_unlock(&muCache2);
+                                        return false;
+                                    }
+                                }
                                 break;
                             }
 
                         }
-                        // Sube el bloque de la memoria remota 1 a la cache
+                        // Sube el bloque de la memoria remota 1 a la mi cache
                         for(int i=0; i<4; ++i){
                             pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
                         }
@@ -683,8 +729,8 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             }
 
         }
-        // Lo leo (lo pongo en el registro)
-        vecRegs[regX] = pTc->cache[filaCache][bloqueCache]; //lo pongo en el registro
+
+        vecRegs[regX] = pTc->cache[filaCache][bloqueCache];         // Lo leo (lo pongo en el registro)
 
         // Libero mi cache, es el ultimo recurso que se libera
         switch(idCPU){
@@ -699,6 +745,8 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             break;
         }
     }else{
+        // No pude obtener el bloqueo sobre mi cache
+        // devuelvo false ya que no puedo hacer nada.
         return false;
     }
 }
