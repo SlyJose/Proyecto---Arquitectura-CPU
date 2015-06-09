@@ -97,7 +97,33 @@ private:
     bool lw(int regX, int regY, int n, int* vecRegs, int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY);
     bool sw(int regX, int regY, int n, int *vecRegs, int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY);
 
+    /**
+     * Este método se encarga de poner "uncached" el bloque identificado por el parámetro
+     * \var bloqueInvalidar en el directorio que se le envía (el puntero).
+     * @brief uncachPage
+     * @param Puntero al directorio al que pertenece el bloque
+     * @param id del bloque a invalidar
+     */
+    void uncachPage(sDirectory *directorio, int bloqueInvalidar);
+    /**
+     * Copia de una memoria que ya se identificó cual es a una caché que ya se sabe cual es
+     * el bloque identificado por \var bloqueReemplazar
+     * @brief copiarAmemoria
+     * @param Puntero a una memoria que se sabe que es la que corresponde
+     * @param Puntero a una cache que se sabe que es la que corresponde
+     * @param Identificador del bloque que se quiere reemplazar
+     */
+    void copiarAmemoria(sMemory* memoria, sCach *cache, int bloqueReemplazar);
     void copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY);
+    /**
+     * Va a copiar de una memoria ya identificada a una cache ya identificada el bloque identificado
+     * por la variable \var idBloque.
+     * @brief copiarAcache
+     * @param memoria
+     * @param cache
+     * @param bloque
+     */
+    void copiarAcache(sMemory* memoria, sCache* cache, int idBloque);
     void copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY);
 
     void fin(int idThread, int* registros);
