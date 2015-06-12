@@ -2218,7 +2218,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
                 /* CASO #4 BLOQUE EN NINGUNA CACHE */
 
-                if(numBloque < 8){
+                if(numBloque < 8){                                                                          // Revision de directorios
                     resultBlockDirect = pthread_mutex_trylock(&mutDir);
                     if(resultBlockDirect == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
                         copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
