@@ -128,7 +128,6 @@ private:
 
     void fin(int idThread, int* registros);
 
-    void modificaDirectorioBloque(int numBloque, sCach *pTd, sCach *pTdX, sCach *pTdY);
 
     //-------------------------
     //| Miembros de la clase. |
