@@ -957,7 +957,7 @@ void principalThread::copiarAmemoria(sMemory *memoria, sCach *cache, int bloqueR
 }
 
 
-void principalThread::modificaDirectorioBloque(int numBloque, sCach *pTd, sCach *pTdX, sCach *pTdY)                                                /* Modificacion de directorio donde se halla el bloque a escribir */
+void principalThread::modificaDirectorioBloque(int numBloque, sDirectory *pTd, sDirectory *pTdX, sDirectory *pTdY)                                                /* Modificacion de directorio donde se halla el bloque a escribir */
 {
     /* La funcion SW siempre modifica el bloque a utilizar, por lo que los directorios sin importar el caso, son modificados */
 
@@ -1131,6 +1131,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     }
                 }
 
+                resultBlockDirect = pthread_mutex_trylock(&mutDir);
+                resultBlockDirectX = pthread_mutex_trylock(&mutDir1); 
+                resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
+                
+                if(resultBlockDirect + resultBlockDirectX + resultBlockDirectY == 0){                // Bloqueo de los tres directorios
+                    modificaDirectorioBloque(numBloque, pDirect, pDirectX, pDirectY);                // Se logran bloquear los directorios
+                }else{
+                   return false;                                                                     // No se logra bloquear el recurso
+                }
+               
+                
+                
                 // bloquear los directorios y llamar a modificaDirectorioBloque
 
 
