@@ -1,0 +1,25 @@
+pthread_barrier(3) barrera;
+pthread_mutex cpu0;
+''				cpu1;
+''				cpu2;
+
+void cambiaCiclo(){
+	barrera.wait();
+	++reloj;
+	cpu1.signal();
+	cpu0.signal();
+	cpu2.signal();
+}
+
+...
+
+	CPU0
+		barrera.signal();
+		cpu0.wait();
+...
+
+int relojTemp = reloj;
+while(reloj < relojTemp+16){
+	barrera.sinal();
+	cpu0.wait();
+}
