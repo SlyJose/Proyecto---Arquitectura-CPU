@@ -60,6 +60,17 @@ struct threadData{      /*!< Para pasar parametros a los threads. */
     int idCPU;
 };
 
+struct sMemory{
+    int memory[5][8];       // Memoria CPU
+};
+struct sCach{
+    int cache[6][4];        // Cache CPU
+};
+struct sDirectory{
+    int directory[8][5];    // Directory CPU
+};
+
+
 class principalThread{
 
 private:
@@ -94,8 +105,8 @@ private:
     //| Funciones privadas de la clase. |
     //-----------------------------------
 
-    bool lw(int regX, int regY, int n, int* vecRegs, int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY);
-    bool sw(int regX, int regY, int n, int *vecRegs, int *pTm, int *pTc, int *pTd, int *pTmX, int *pTcX, int *pTdX, int *pTmY, int *pTcY, int *pTdY);
+    bool lw(int regX, int regY, int n, int* vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU);
+    bool sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU);
 
     /**
      * Este método se encarga de poner "uncached" el bloque identificado por el parámetro
@@ -123,7 +134,7 @@ private:
      * @param cache
      * @param bloque
      */
-    void copiarAcache(sMemory* memoria, sCache* cache, int idBloque);
+    void copiarAcache(sMemory* memoria, sCach* cache, int idBloque);
     void copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY);
 
     void fin(int idThread, int* registros);
