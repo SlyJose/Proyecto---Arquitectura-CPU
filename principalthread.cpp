@@ -1049,23 +1049,21 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
     /* Ciclo de verificacion en cache local */
 
+    switch (idCPU) {                                                                                 // Bloqueo de la cache local
+    case CPU0:
+        resultBlockCache = pthread_mutex_trylock(&mutCache);
+        break;
+    case CPU1:
+        resultBlockCache = pthread_mutex_trylock(&mutCache1);
+        break;
+    case CPU2:
+        resultBlockCache = pthread_mutex_trylock(&mutCache2);
+        break;
+    }
 
     while(vacio && contador < 4){
 
         /* CASO #1 BLOQUE EN CACHE LOCAL EN ESTADO: M */
-
-
-        switch (idCPU) {                                                                                 // Bloqueo de recursos
-        case CPU0:
-            resultBlockCache = pthread_mutex_trylock(&mutCache);
-            break;
-        case CPU1:
-            resultBlockCache = pthread_mutex_trylock(&mutCache1);
-            break;
-        case CPU2:
-            resultBlockCache = pthread_mutex_trylock(&mutCache2);
-            break;
-        }
 
         if(resultBlockCache == 0){                                                                       // Recurso bloqueado de forma exitosa
             if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == M){                    // Se verifica si se encuentra en cache local estado M
@@ -1094,17 +1092,6 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
         /* CASO #2 BLOQUE EN CACHE LOCAL EN ESTADO: C  */
 
-        switch (idCPU) {                                                                                 // Bloqueo de cache local
-        case CPU0:
-            resultBlockCache = pthread_mutex_trylock(&mutCache);
-            break;
-        case CPU1:
-            resultBlockCache = pthread_mutex_trylock(&mutCache1);
-            break;
-        case CPU2:
-            resultBlockCache = pthread_mutex_trylock(&mutCache2);
-            break;
-        }
 
         if(resultBlockCache == 0){
             if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){                     /* El bloque esta en cache local compartido */
@@ -1112,8 +1099,8 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 bool recorrer = true;
 
                 if(idCPU != 0){                                                                           /* Se bloquean las caches externas */
-                    resultBlockCacheX = pthread_mutex_trylock(&mutCache);
-                    if(resultBlockCacheX != 0){
+                    resultBlockCache = pthread_mutex_trylock(&mutCache);
+                    if(resultBlockCache != 0){
                         return false;    // No se logra bloquear la cache en CPU 0
                     }
                 }
@@ -1131,61 +1118,135 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     }
                 }
 
-                resultBlockDirect = pthread_mutex_trylock(&mutDir);
-                resultBlockDirectX = pthread_mutex_trylock(&mutDir1); 
-                resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
-                
-                if(resultBlockDirect + resultBlockDirectX + resultBlockDirectY == 0){                // Bloqueo de los tres directorios
-                    modificaDirectorioBloque(numBloque, pDirect, pDirectX, pDirectY);                // Se logran bloquear los directorios
-                }else{
-                   return false;                                                                     // No se logra bloquear el recurso
+
+                /* Se busca el directorio donde se encuentra el bloque a modificar, se cambia su estado */
+
+
+                if(numBloque < 8){								                                                            // Bloque a modificar en el directorio local
+                    resultBlockDirect = pthread_mutex_trylock(&mutDir);
+                    if(resultBlockDirect == 0){
+                        for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
+                            if(pTd->directory[i][0] == numBloque){
+                                pTd->directory[i][1] = M;
+                                switch(idCPU){
+                                case CPU0:
+                                    pTd->directory[i][2] = 1;
+                                    pTd->directory[i][3] = 0;
+                                    pTd->directory[i][4] = 0;
+                                    break;
+                                case CPU1:
+                                    pTd->directory[i][2] = 0;
+                                    pTd->directory[i][3] = 1;
+                                    pTd->directory[i][4] = 0;
+                                    break;
+                                case CPU2:
+                                    pTd->directory[i][2] = 0;
+                                    pTd->directory[i][3] = 0;
+                                    pTd->directory[i][4] = 1;
+                                    break;
+                                }
+                            }
+                        }
+                        pthread_mutex_unlock(&mutDir);
+                    }else{
+                        return false;
+                    }
                 }
-               
-                
-                
-                // bloquear los directorios y llamar a modificaDirectorioBloque
+
+                if(numBloque > 7 && numBloque < 16 ){                            					    // Bloque a reemplazar en el directorio externo X
+                    resultBlockDirectX = pthread_mutex_trylock(&mutDir1);
+                    if(resultBlockDirectX == 0){
+                        for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio X */
+                            if(pTdX->directory[i][0] == numBloque){
+                                pTdX->directory[i][1] = M;
+                                switch(idCPU){
+                                case CPU0:
+                                    pTdX->directory[i][2] = 1;
+                                    pTdX->directory[i][3] = 0;
+                                    pTdX->directory[i][4] = 0;
+                                    break;
+                                case CPU1:
+                                    pTdX->directory[i][2] = 0;
+                                    pTdX->directory[i][3] = 1;
+                                    pTdX->directory[i][4] = 0;
+                                    break;
+                                case CPU2:
+                                    pTdX->directory[i][2] = 0;
+                                    pTdX->directory[i][3] = 0;
+                                    pTdX->directory[i][4] = 1;
+                                    break;
+                                }
+                            }
+                        }
+                        pthread_mutex_unlock(&mutDir1);
+                    }else{
+                        return false;
+                    }
+                }
+
+                if(numBloque > 15){                                                            // Bloque a reemplazar en el directorio externo Y
+                    resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
+                    if(resultBlockDirectY == 0){
+                        for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio Y */
+                            if(pTdY->directory[i][0] == numBloque){
+                                pTdY->directory[i][1] = M;
+                                switch(idCPU){
+                                case CPU0:
+                                    pTdY->directory[i][2] = 1;
+                                    pTdY->directory[i][3] = 0;
+                                    pTdY->directory[i][4] = 0;
+                                    break;
+                                case CPU1:
+                                    pTdY->directory[i][2] = 0;
+                                    pTdY->directory[i][3] = 1;
+                                    pTdY->directory[i][4] = 0;
+                                    break;
+                                case CPU2:
+                                    pTdY->directory[i][2] = 0;
+                                    pTdY->directory[i][3] = 0;
+                                    pTdY->directory[i][4] = 1;
+                                    break;
+                                }
+                            }
+                        }
+                        pthread_mutex_unlock(&mutDir2);
+                    }else{
+                        return false;
+                    }
+                }
 
 
                 for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
-                    if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = C){                     // El bloque esta compartido en el CPU externo X , el bloque esta compartido
-                        >>>>>>> origin/procesadores-paralelo
-                                pTcX->cache[5][j] = I;
+                    if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = C){                     // El bloque esta compartido en los CPU externos, se invalida
+                        pTcX->cache[5][j] = I;
                         recorrer = false;
                     }
                 }
 
-            }
-            recorrer = true;
-            for(int j = 0; j < 4 && recorrer; ++j){
-                if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = C){
-                    pTcY->cache[5][j] = I;
-                    recorrer = false;
-                }else{
-                    if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = M){                // El bloque esta compartido en el CPU externo Y, el bloque esta modificado
-                        copiarAmemoria(pTcY, j, pTm, pTmX, pTmY);                               // Se almacena en memoria
-                        =======
-                        recorrer = true;
-                        for(int j = 0; j < 4 && recorrer; ++j){
-                            if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = C){
-                                >>>>>>> origin/procesadores-paralelo
-                                        pTcY->cache[5][j] = I;
-                                recorrer = false;
-                            }
-                        }
-                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);                          // Se sube el bloque a la cache local
-                        pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                               /* Realizadas las comprobaciones, se almacena el contenido del registro en la posicion de la cache */
-                        pTc->cache[5][bloqueCache] = M;
-
-                        //liberar recursos
-
-                        return true;
+                recorrer = true;
+                for(int j = 0; j < 4 && recorrer; ++j){
+                    if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] = C){
+                        pTcY->cache[5][j] = I;
+                        recorrer = false;
                     }
-                }else{
-                    return false;               // No se logra bloquear la cache local
                 }
 
-                ++contador;
+                pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                               /* Realizadas las comprobaciones, se almacena el contenido del registro en la posicion de la cache */
+                pTc->cache[5][bloqueCache] = M;
+
+                pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
+                pthread_mutex_unlock(&mutCache1);
+                pthread_mutex_unlock(&mutCache2);
+
+                return true;
             }
+        }else{
+                return false;                                                                           // No se logra bloquear la cache local
+        }
+
+        ++contador;
+    }
+
 
 
             /* LLegado a este punto, el bloque no se encuentra en cache local */
@@ -1194,66 +1255,212 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
             /* El bloque que se encuentra en la posicion donde va a caer el nuevo bloque, dependiendo de su estado, se almacena en memoria o no */
 
-            int numBloqueReemplazar = pTc->cache[4][bloqueCache];
+            if(resultBlockCache == 0){                                                                      // Se logra bloquear la cache local
+                int numBloqueReemplazar = pTc->cache[4][bloqueCache];
+                if(pTc->cache[5][bloqueCache] != I){                                                         // El bloque debe modificarse en los directorios, estado C o M
 
-            if(pTc->cache[5][bloqueCache] != I){                                                // El bloque debe modificarse en los directorios, estado C o M
+                    bool modificado = false;
 
-                for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
-                    if(pTd->directory[i][0] == numBloqueReemplazar){                                        /* Se coloca el estado de los CPU en 0 */
-                        pTd->directory[i][1] = U;
-                        pTd->directory[i][2] = 0;
-                        pTd->directory[i][3] = 0;
-                        pTd->directory[i][4] = 0;
+                    if(pTc->cache[5][bloqueCache] == M){                                                            /* Si esta modificado, debe guardarse en memoria */
+                        modificado = true;
+                        pTc->cache[5][bloqueCache] = I;                                              // Invalida en cache local
+                    }
+
+                    if(numBloqueReemplazar < 8){                                                            // Bloque a reemplazar en el primer directorio
+                        resultBlockDirect = pthread_mutex_trylock(&mutDir);
+                        if(resultBlockDirect == 0){
+                            for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
+                                if(pTd->directory[i][0] == numBloqueReemplazar){                                        /* Se coloca el estado de los CPU en 0 */
+                                    pTd->directory[i][1] = U;
+                                    pTd->directory[i][2] = 0;
+                                    pTd->directory[i][3] = 0;
+                                    pTd->directory[i][4] = 0;
+                                }
+                            }
+                            if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
+                                copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
+                            }
+                            pthread_mutex_unlock(&mutDir);
+                        }else{
+                            return false;
+                        }
+                    }
+
+                    if(numBloqueReemplazar > 7 && numBloqueReemplazar < 16 ){                                // Bloque a reemplazar en el directorio externo X
+                        resultBlockDirectX = pthread_mutex_trylock(&mutDir1);
+                        if(resultBlockDirectX == 0){
+                            for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio X */
+                                if(pTdX->directory[i][0] == numBloqueReemplazar){                                       /* Se coloca el estado de los CPU en 0 */
+                                    pTdX->directory[i][1] = U;
+                                    pTdX->directory[i][2] = 0;
+                                    pTdX->directory[i][3] = 0;
+                                    pTdX->directory[i][4] = 0;
+                                }
+                            }
+                            if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
+                                copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
+                            }
+                            pthread_mutex_unlock(&mutDir1);
+                        }else{
+                            return false;
+                        }
+                    }
+
+                    if(numBloqueReemplazar > 15){                                                            // Bloque a reemplazar en el directorio externo Y
+                        resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
+                        if(resultBlockDirectY == 0){
+                            for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio Y */
+                                if(pTdY->directory[i][0] == numBloqueReemplazar){                                       /* Se coloca el estado de los CPU en 0 */
+                                    pTdY->directory[i][1] = U;
+                                    pTdY->directory[i][2] = 0;
+                                    pTdY->directory[i][3] = 0;
+                                    pTdY->directory[i][4] = 0;
+                                }
+                            }
+                            if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
+                                copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
+                            }
+                            pthread_mutex_unlock(&mutDir2);
+                        }else{
+                            return false;
+                        }
+                    }
+
+                    if(pTc->cache[5][bloqueCache] == C && !modificado){                                                    /* Si esta compartido, debe invalidarse el bloque en las otras caches */
+                        resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
+                        resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
+
+                        if(resultBlockCacheX + resultBlockCacheY == 0){
+                            pTc->cache[5][bloqueCache] = I;                                                 // Invalida en cache local
+                            for(int i = 0; i < 4; ++i){                                                     // Invalida en cache externa X si esta el bloque
+                                if(pTcX->cache[4][i] == numBloqueReemplazar){
+                                    pTcX->cache[5][i] = I;
+                                }
+                            }
+                            for(int i = 0; i < 4; ++i){                                                     // Invalida en cache externa Y si esta el bloque
+                                if(pTcY->cache[4][i] == numBloqueReemplazar){
+                                    pTcY->cache[5][i] = I;
+                                }
+                            }
+                            pthread_mutex_unlock(&mutCache1);                                               // Se liberan las caches externas, la cache local aun no ya que se debe utilizar
+                            pthread_mutex_unlock(&mutCache2);
+
+                        }else{
+                            return false;
+                        }
                     }
                 }
-                for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio X */
-                    if(pTdX->directory[i][0] == numBloqueReemplazar){                                       /* Se coloca el estado de los CPU en 0 */
-                        pTdX->directory[i][1] = U;
-                        pTdX->directory[i][2] = 0;
-                        pTdX->directory[i][3] = 0;
-                        pTdX->directory[i][4] = 0;
+             }else{
+                return false;                                                                               // No se logra bloquear la cache local
+             }
+
+
+
+            /* Se busca el directorio donde se encuentra el bloque a modificar, se cambia su estado */
+
+            if(numBloque < 8){								                                                            // Bloque a modificar en el directorio local
+                resultBlockDirect = pthread_mutex_trylock(&mutDir);
+                if(resultBlockDirect == 0){
+                    for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
+                        if(pTd->directory[i][0] == numBloque){
+                            pTd->directory[i][1] = M;
+                            switch(idCPU){
+                            case CPU0:
+                                pTd->directory[i][2] = 1;
+                                pTd->directory[i][3] = 0;
+                                pTd->directory[i][4] = 0;
+                                break;
+                            case CPU1:
+                                pTd->directory[i][2] = 0;
+                                pTd->directory[i][3] = 1;
+                                pTd->directory[i][4] = 0;
+                                break;
+                            case CPU2:
+                                pTd->directory[i][2] = 0;
+                                pTd->directory[i][3] = 0;
+                                pTd->directory[i][4] = 1;
+                                break;
+                            }
+                        }
                     }
-                }
-                for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio Y */
-                    if(pTdY->directory[i][0] == numBloqueReemplazar){                                       /* Se coloca el estado de los CPU en 0 */
-                        pTdY->directory[i][1] = U;
-                        pTdY->directory[i][2] = 0;
-                        pTdY->directory[i][3] = 0;
-                        pTdY->directory[i][4] = 0;
-                    }
+                    pthread_mutex_unlock(&mutDir);
+                }else{
+                    return false;
                 }
             }
 
-            if(pTc->cache[5][bloqueCache] == C){                                                            /* Si esta compartido, debe invalidarse el bloque en las otras caches */
-
-                pTc->cache[5][bloqueCache] = I;                                                 // Invalida en cache local
-
-                for(int i = 0; i < 4; ++i){                                                     // Invalida en cache externa X si esta el bloque
-                    if(pTcX->cache[4][i] == numBloqueReemplazar){
-                        pTcX->cache[5][i] = I;
+            if(numBloque > 7 && numBloque < 16 ){                            					    // Bloque a reemplazar en el directorio externo X
+                resultBlockDirectX = pthread_mutex_trylock(&mutDir1);
+                if(resultBlockDirectX == 0){
+                    for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio X */
+                        if(pTdX->directory[i][0] == numBloque){
+                            pTdX->directory[i][1] = M;
+                            switch(idCPU){
+                            case CPU0:
+                                pTdX->directory[i][2] = 1;
+                                pTdX->directory[i][3] = 0;
+                                pTdX->directory[i][4] = 0;
+                                break;
+                            case CPU1:
+                                pTdX->directory[i][2] = 0;
+                                pTdX->directory[i][3] = 1;
+                                pTdX->directory[i][4] = 0;
+                                break;
+                            case CPU2:
+                                pTdX->directory[i][2] = 0;
+                                pTdX->directory[i][3] = 0;
+                                pTdX->directory[i][4] = 1;
+                                break;
+                            }
+                        }
                     }
+                    pthread_mutex_unlock(&mutDir1);
+                }else{
+                    return false;
                 }
-                for(int i = 0; i < 4; ++i){                                                     // Invalida en cache externa Y si esta el bloque
-                    if(pTcY->cache[4][i] == numBloqueReemplazar){
-                        pTcY->cache[5][i] = I;
+            }
+
+            if(numBloque > 15){                                                            // Bloque a reemplazar en el directorio externo Y
+                resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
+                if(resultBlockDirectY == 0){
+                    for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio Y */
+                        if(pTdY->directory[i][0] == numBloque){
+                            pTdY->directory[i][1] = M;
+                            switch(idCPU){
+                            case CPU0:
+                                pTdY->directory[i][2] = 1;
+                                pTdY->directory[i][3] = 0;
+                                pTdY->directory[i][4] = 0;
+                                break;
+                            case CPU1:
+                                pTdY->directory[i][2] = 0;
+                                pTdY->directory[i][3] = 1;
+                                pTdY->directory[i][4] = 0;
+                                break;
+                            case CPU2:
+                                pTdY->directory[i][2] = 0;
+                                pTdY->directory[i][3] = 0;
+                                pTdY->directory[i][4] = 1;
+                                break;
+                            }
+                        }
                     }
+                    pthread_mutex_unlock(&mutDir2);
+                }else{
+                    return false;
                 }
-
-            }else{
-                if(pTc->cache[5][bloqueCache] == M){                                                            /* Si esta modificado, debe guardarse en memoria */
-                    pTc->cache[5][bloqueCache] = I;                                              // Invalida en cache local
-                    copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
-
-                }
+            }
 
 
+            /* CASO # 3 BLOQUE EN CACHE EXTERNA */
 
-                /* CASO # 3 BLOQUE EN CACHE EXTERNA */
 
-
-                bool bloqueSubido = false;                                                           // Bandera de verificacion para finalizar el SW
+                //bool bloqueSubido = false;                                                           // Bandera de verificacion para finalizar el SW
 
                 bool recorrer = true;
+
+
+
                 for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                     if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] = C){                     // El bloque esta compartido en el CPU externo X , el bloque esta compartido
                         pTcX->cache[5][j] = I;
@@ -1284,6 +1491,8 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     }
                 }
 
+
+
                 if(bloqueSubido){                                                                   /* El bloque se encontraba en una memoria externa y fue copiado
                                                                                           a cache local para su escritura */
 
@@ -1300,12 +1509,34 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
                 /* CASO #4 BLOQUE EN NINGUNA CACHE */
 
-                copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
-            }
-        }
+                if(numBloque < 8){
+                    resultBlockDirect = pthread_mutex_trylock(&mutDir);
+                    if(resultBlockDirect == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
+                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
+                    }else{
+                        return false;
+                    }
+                }
+                if(numBloque > 7 && numBloque < 16){
+                    resultBlockDirectX = pthread_mutex_trylock(&mutDir1);
+                    if(resultBlockDirectX == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
+                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
+                    }else{
+                        return false;
+                    }
+                }
+                if(numBloque > 15){
+                    resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
+                    if(resultBlockDirectY == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
+                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
+                    }else{
+                        return false;
+                    }
+                }
 
-    }
+
 }
+
 void principalThread::copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY){      /* Se recibe un puntero a cache y a memoria, se copia el bloque a cache */
 
     int columMemoria;
