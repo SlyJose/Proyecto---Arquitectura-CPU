@@ -1387,7 +1387,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     break;
                                 }
-
+                                continuar = false;
 
                                 pTdX->directory[i][1] = M;
                                 switch(idCPU){
@@ -1515,7 +1515,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     break;
                                 }
-
+                                continuar = false;
 
                                 pTdY->directory[i][1] = M;
                                 switch(idCPU){
@@ -1692,13 +1692,14 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                             pTd->directory[i][2] = 0;
                             pTd->directory[i][3] = 0;
                             pTd->directory[i][4] = 0;
+
+                            continuar = false;
                         }
                     }
                     if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
                         copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
                     }
-                    pthread_mutex_unlock(&mutDir);
-                    continuar = false;
+                    pthread_mutex_unlock(&mutDir);                    
                 }else{
                     return false;
                 }
@@ -1812,13 +1813,14 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                             pTdX->directory[i][2] = 0;
                             pTdX->directory[i][3] = 0;
                             pTdX->directory[i][4] = 0;
+
+                            continuar = false;
                         }
                     }
                     if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
                         copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
                     }
-                    pthread_mutex_unlock(&mutDir1);
-                    continuar = false;
+                    pthread_mutex_unlock(&mutDir1);                    
                 }else{
                     return false;
                 }
@@ -1930,8 +1932,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
                             }
 
-
-
+                            continuar = false;
 
                             pTdY->directory[i][1] = U;
                             pTdY->directory[i][2] = 0;
@@ -1943,13 +1944,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
                     }
                     pthread_mutex_unlock(&mutDir2);
-                    continuar = false;
                 }else{
                     return false;
                 }
             }
-
-
         }
     }else{
         return false;                                                                               // No se logra bloquear la cache local
@@ -1983,10 +1981,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         pTd->directory[i][4] = 1;
                         break;
                     }
+                    continuar = false;
                 }
             }
-            pthread_mutex_unlock(&mutDir);
-            continuar = false;
+            pthread_mutex_unlock(&mutDir);            
         }else{
             return false;
         }
@@ -2016,10 +2014,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         pTdX->directory[i][4] = 1;
                         break;
                     }
+                    continuar = false;
                 }
             }
-            pthread_mutex_unlock(&mutDir1);
-            continuar = false;
+            pthread_mutex_unlock(&mutDir1);            
         }else{
             return false;
         }
@@ -2049,10 +2047,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         pTdY->directory[i][4] = 1;
                         break;
                     }
+                    continuar = false;
                 }
             }
-            pthread_mutex_unlock(&mutDir2);
-            continuar = false;
+            pthread_mutex_unlock(&mutDir2);            
         }else{
             return false;
         }
@@ -2213,6 +2211,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);                                 // Se sube el bloque a cache local
         pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
         pTc->cache[5][bloqueCache] = M;
+
+        switch(idCPU){                                                                          // Libera la cache local
+        case CPU0:
+            pthread_mutex_unlock(&mutCache);
+            break;
+        case CPU1:
+            pthread_mutex_unlock(&mutCache1);
+            break;
+        case CPU2:
+            pthread_mutex_unlock(&mutCache2);
+            break;
+        }
+
         return true;
     }
 
@@ -2225,47 +2236,26 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
     /* CASO #4 BLOQUE EN NINGUNA CACHE */
 
-<<<<<<< HEAD
-                if(numBloque < 8){                                                                          // Revision de directorios
-                    resultBlockDirect = pthread_mutex_trylock(&mutDir);
-                    if(resultBlockDirect == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
-                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
-                        pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
-                        pTc->cache[5][bloqueCache] = M;
-                        return true;
-                    }else{
-                        return false;
-                    }
-                }
-                if(numBloque > 7 && numBloque < 16){
-                    resultBlockDirectX = pthread_mutex_trylock(&mutDir1);
-                    if(resultBlockDirectX == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
-                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
-                        pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
-                        pTc->cache[5][bloqueCache] = M;
-                        return true;
-                    }else{
-                        return false;
-                    }
-                }
-                if(numBloque > 15){
-                    resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
-                    if(resultBlockDirectY == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
-                        copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
-                        pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
-                        pTc->cache[5][bloqueCache] = M;
-                        return true;
-                    }else{
-                        return false;
-                    }
-                }
-=======
-    if(numBloque < 8){
+    if(numBloque < 8){                                                                          // Revision de directorios
         resultBlockDirect = pthread_mutex_trylock(&mutDir);
         if(resultBlockDirect == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
             copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
             pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
             pTc->cache[5][bloqueCache] = M;
+
+            switch(idCPU){                                                                          // Libera la cache local
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
+            pthread_mutex_unlock(&mutDir);
+
             return true;
         }else{
             return false;
@@ -2277,6 +2267,20 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
             pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
             pTc->cache[5][bloqueCache] = M;
+
+            switch(idCPU){                                                                          // Libera la cache local
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
+            pthread_mutex_unlock(&mutDir1);
+
             return true;
         }else{
             return false;
@@ -2288,12 +2292,25 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
             pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
             pTc->cache[5][bloqueCache] = M;
+
+            switch(idCPU){                                                                          // Libera la cache local
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
+            pthread_mutex_unlock(&mutDir2);
+
             return true;
         }else{
             return false;
         }
     }
->>>>>>> origin/procesadores-paralelo
 }
 
 void principalThread::copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY){      /* Se recibe un puntero a cache y a memoria, se copia el bloque a cache */
