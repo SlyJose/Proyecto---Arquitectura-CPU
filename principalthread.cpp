@@ -44,6 +44,8 @@ sDirectory  *pDirectY;
 
 
 int* vecPrograma;
+std::queue<int> colaPCs;
+int numThreads;
 
 QString estadisticas;
 int reloj;
@@ -59,6 +61,7 @@ pthread_mutex_t mutDir = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutDir1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutDir2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCout = PTHREAD_MUTEX_INITIALIZER;
 // Para sincronizacion
 #ifdef __APPLE__
 principalThread::pthread_barrier_t barrera;
@@ -74,16 +77,13 @@ sem_t semReloj;
 principalThread::principalThread(QString programa, int numHilos)
 {
     pthread_barrier_init(&barrera, 0, 3);
-    m_indexPC = 0;
     sem_init(&semReloj, 0, 3);  //inicializo el semaforo en 3
     reloj = 0;
     numThreads = numHilos;
-    vecPCs = new int[numThreads];
     QString::iterator it;
     QString strTemp;
     int tamVec = 1;
-    int indiceVecPCs = 1;
-    vecPCs[0] = 0;
+    colaPCs.push(0);
     for(it = programa.begin(); it!= programa.end(); ++it){
         if(*it == ' ' || *it == '\n'){
             ++it;
@@ -107,8 +107,7 @@ principalThread::principalThread(QString programa, int numHilos)
 
     for(it = strTemp.begin(); it!=strTemp.end(); ++it){
         if(*it == '@'){
-            vecPCs[indiceVecPCs] = j;
-            ++indiceVecPCs;
+            colaPCs.push(j);
         }else{
             if( *it == '|'){
                 vecPrograma[j] =numTemp.toInt(&ok, 10);
@@ -186,7 +185,7 @@ principalThread::principalThread(QString programa, int numHilos)
 
 principalThread::~principalThread()
 {
-    delete[] vecPCs;
+
 }
 
 bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU)
@@ -938,6 +937,9 @@ void *principalThread::procesadorHelper(void *threadStruct)
 {
     struct threadData *td;
     td = (struct threadData*)threadStruct;
+    pthread_mutex_lock(&mutCout);
+    std::cout<<"Hilo actual: "<<td->idThread<<std::endl;
+    pthread_mutex_unlock(&mutCout);
     return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->idCPU);
 }
 
@@ -2322,46 +2324,14 @@ void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *
 
 void principalThread::fin(int idThread, int *registros)
 {
-    /*
-    int tmp = contCicTotales - contCicCPU1;
-    estadisticas += "------ Datos del hilo "+QString::number(idThread)+" ------\n";
-    estadisticas += "\nCPU que lo ejecuta: 1";            // Segunda parte de agregará un indicar para cada CPU
-    estadisticas += "\n\n Ciclos de reloj utilizados en el hilo: "+QString::number(contCicCPU1)+"\n\n";
-    contCicCPU1 = 0;
-    estadisticas += " Estado del reloj al inicio del hilo: "+QString::number(tmp)+"\n\n";
-    estadisticas += "*** Los registros quedaron como:\n";
-    for(int i=0; i<32; ++i){
-        estadisticas += "R["+QString::number(i)+"] = "+QString::number(registros[i])+'\n';
-    }
-    estadisticas += "*** La cache de datos del procesador quedo asi:\n";
-    for(int i=0; i<4; ++i){
-        QChar estado;
-        switch(cache[5][i]){
-        case M:
-            estado = 'M';
-            break;
-        case I:
-            estado = 'I';
-            break;
-        case C:
-            estado = 'C';
-            break;
-        }
-        estadisticas += "Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(cache[4][i])+'\n';
-        estadisticas += "| ";
-        for(int j=0; j<4; ++j){
-            estadisticas += QString::number(cache[j][i]) + " | ";
-        }
-        estadisticas += '\n';
-    }*/
 }
 
 int principalThread::getCurrentPC()
 {
     int retornar;
-    if(m_indexPC<numThreads){
-        retornar = vecPCs[m_indexPC];
-        ++m_indexPC;
+    if(colaPCs.empty() == false){
+        retornar = colaPCs.front();
+        colaPCs.pop();
     }else{
         retornar = -1;
     }

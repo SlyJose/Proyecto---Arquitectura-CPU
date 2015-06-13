@@ -18,6 +18,8 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <errno.h>
+#include <iostream>
+#include <queue>
 
 //---------------------------------------------------------------
 //| Los tipos de instrucciones que puede simular el procesador. |
@@ -71,7 +73,6 @@ struct sCach{
 struct sDirectory{
     int directory[8][5];    // Directory CPU
 };
-
 
 class principalThread{
 
@@ -210,14 +211,6 @@ private:
     void fin(int idThread, int* registros);
 
     int getCurrentPC();
-
-
-    //-------------------------
-    //| Miembros de la clase. |
-    //-------------------------
-    int numThreads;
-    int m_indexPC;
-    int* vecPCs;
 
 };
 
