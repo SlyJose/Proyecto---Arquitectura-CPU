@@ -47,9 +47,6 @@ int* vecPrograma;
 
 QString estadisticas;
 int reloj;
-int contCicCPU1 = 0;                         /* Encargado de llevar el conteo de cada ciclo del reloj en el CPU 1 */
-int contCicTotales = 0;                      /* Permite sincronizar que cada CPU vaya por el mismo ciclo de reloj */
-/* En la segunda parte se utilizará la variable contCicTotales totalmente */
 
 /* Mutex para los recursos críticos */
 pthread_mutex_t mutCache = PTHREAD_MUTEX_INITIALIZER;
@@ -62,10 +59,23 @@ pthread_mutex_t mutDir = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutDir1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutDir2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
+// Para sincronizacion
+#ifdef __APPLE__
+principalThread::pthread_barrier_t barrera;
+#else
+pthread_barrier_t barrera;
+#endif
+pthread_mutex_t mutCPU0 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCPU1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutCPU2 = PTHREAD_MUTEX_INITIALIZER;
+sem_t semReloj;
 /*---------------------------------------------------*/
 
 principalThread::principalThread(QString programa, int numHilos)
 {
+    pthread_barrier_init(&barrera, 0, 3);
+    m_indexPC = 0;
+    sem_init(&semReloj, 0, 3);  //inicializo el semaforo en 3
     reloj = 0;
     numThreads = numHilos;
     vecPCs = new int[numThreads];
@@ -171,67 +181,6 @@ principalThread::principalThread(QString programa, int numHilos)
             }
         }
     }
-
-    /*       Directorio
-
-          B   E   P0  P1  P2
-        ---------------------
-        | 0 | C | 1 | 1 | 1 |
-        ---------------------
-        | 1 | C | 1 | 1 | 0 |
-        ---------------------
-        | 2 | C | 0 | 1 | 1 |
-        ---------------------
-        | 3 | C | 0 | 1 | 1 |
-        ---------------------
-        | 4 | M | 1 | 0 | 0 |
-        ---------------------
-        | 5 | C | 0 | 1 | 1 |
-        ---------------------
-        | 6 | C | 1 | 1 | 0 |
-        ---------------------
-        | 7 | C | 1 | 0 | 1 |
-        ---------------------
-
-          B    E   P0  P1  P2
-        ---------------------
-        | 8  | C | 1 | 1 | 1 |
-        ---------------------
-        | 9  | C | 0 | 1 | 1 |
-        ---------------------
-        | 10 | U | 0 | 0 | 0 |
-        ---------------------
-        | 11 | C | 1 | 0 | 0 |
-        ---------------------
-        | 12 | C | 1 | 1 | 0 |
-        ---------------------
-        | 13 | C | 0 | 1 | 1 |
-        ---------------------
-        | 14 | C | 1 | 1 | 0 |
-        ---------------------
-        | 15 |   |   |   |   |
-        ---------------------
-
-          B    E   P0  P1  P2
-        ---------------------
-        | 16 | C | 1 | 1 | 1 |
-        ---------------------
-        | 17 | M | 0 | 1 | 0 |
-        ---------------------
-        | 18 | U | 0 | 0 | 0 |
-        ---------------------
-        | 19 | C | 1 | 0 | 1 |
-        ---------------------
-        | 20 | C | 1 | 0 | 1 |
-        ---------------------
-        | 21 | C | 0 | 1 | 1 |
-        ---------------------
-        | 22 | M | 0 | 0 | 1 |
-        ---------------------
-        | 23 | C | 1 | 0 | 1 |
-        ---------------------
-
-     */
 }
 
 
@@ -888,10 +837,8 @@ void* principalThread::procesador(int id, int pc, int idCPU)
     for(int i=0; i<32; ++i){
         registros[i] = 0;
     }
-
     int IP = pc;                                     /* IP = Instruction pointer */
     int idHilo = id;
-
 
     /* Asignacion de punteros locales y externos */
 
@@ -930,11 +877,8 @@ void* principalThread::procesador(int id, int pc, int idCPU)
         pMemoryY = &sMem1;
         pCacheY = &sCache1;
         pDirectY = &sDirect1;
-
         break;
     }
-
-
 
     while(vecPrograma[IP] != FIN){                         // Mientras no encuentre una instruccion de finalizacion
 
@@ -949,42 +893,37 @@ void* principalThread::procesador(int id, int pc, int idCPU)
         switch(IR[0]){
         case DADDI:
             registros[IR[2]] = registros[IR[1]] + IR[3];                //Rx <- Ry + n       |  Las tres instrucciones
-            ++contCicCPU1;
-            ++contCicTotales;
+            esperaCambioCiclo(idCPU);
             break;
         case DADD:
             registros[IR[3]] = registros[IR[1]] + registros[IR[2]];     //Rx <- Ry + Rz      |  tardan un ciclo de reloj
-            ++contCicCPU1;
-            ++contCicTotales;
+            esperaCambioCiclo(idCPU);
             break;
         case DSUB:
             registros[IR[3]] = registros[IR[1]] - registros[IR[2]];     //Rx <- Ry - Rz      |  cada una.
-            ++contCicCPU1;
-            ++contCicTotales;
+            esperaCambioCiclo(idCPU);
             break;
         case LW:
             while(lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU) == false) {
-
+                esperaCambioCiclo(idCPU);
             }         //Rx <- M(n + (Ry))
             break;
         case SW:
             while(sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU)==false){
-
+                esperaCambioCiclo(idCPU);
             };           //M(n + (Ry)) <- Rx
             break;
         case BEQZ:
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
                 IP += (IR[3])*4;
             }
-            ++contCicCPU1;
-            ++contCicTotales;
+            esperaCambioCiclo(idCPU);
             break;
         case BNEZ:
             if(registros[IR[1]] != 0){                                  //Rx != 0, salta
                 IP += (IR[3])*4;
             }
-            ++contCicCPU1;
-            ++contCicTotales;
+            esperaCambioCiclo(idCPU);
             break;
         }
     }
@@ -1004,72 +943,62 @@ void *principalThread::procesadorHelper(void *threadStruct)
 
 QString principalThread::controlador()
 {
-    int thread_0 = 0;
-    int thread_1 = 1;
-    int thread_2 = 2;
     struct threadData tD0;
     struct threadData tD1;
     struct threadData tD2;
     pthread_t vecThreads[3];    //vector de threads para los procesadores
-    QString hiloActual = "";
 
-    int iPCs = 0;
     int idThread = 0;
-    while(iPCs<numThreads){
-        if(iPCs == 0){  //es la primera vez
-            tD0.numPC = vecPCs[iPCs];
-            tD0.idThread = idThread;
-            tD0.idCPU = iPCs;
-            ++iPCs;
-            ++idThread;
-            tD1.numPC = vecPCs[iPCs];
-            tD1.idThread = idThread;
-            tD1.idCPU = iPCs;
-            ++iPCs;
-            ++idThread;
-            tD2.numPC = vecPCs[iPCs];
-            tD2.idThread = idThread;
-            tD2.idCPU = iPCs;
-        }
-
-        // *** ESTO NO SE HA TERMINADO DE IMPLEMENTAR ***
-        ++iPCs;
+    if(numThreads >= 3){
+        tD0.numPC = getCurrentPC();
+        tD0.idThread = idThread;
+        tD0.idCPU = CPU0;
+        pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD0);     // Esto lo
         ++idThread;
-    }
-
-    /*
-    for(int indicePCs = 0; indicePCs < numThreads; ++indicePCs){
-
-        tD.idThread = idThread;
-        tD.numPC = vecPCs[indicePCs];
-        //tD.idCPU = i%3;
-
-        hiloActual = QString::number(idThread)+" en ejecucion.";
-
-        pthread_create(&hilo[0], NULL, procesadorHelper, (void*) &tD);
-
-        pthread_join(hilo, NULL);
-        hiloActual = QString::number(idThread)+" terminado.";
-
+        tD1.numPC = getCurrentPC();
+        tD1.idThread = idThread;
+        tD1.idCPU = CPU1;
+        pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD1);     // hace la
         ++idThread;
-    }
-*/
-    estadisticas += "===================================================\n";
-    estadisticas += "*** La memoria del procesador quedo como:\n";
-    for(int i=0; i<numBloquesMem; ++i){
-        estadisticas += "Bloque de memoria "+QString::number(i)+'\n';
-        estadisticas += "| ";
-        for(int j=0; j<4; ++j){
-            //estadisticas += QString::number(memory[j][i])+" | ";
-        }
-        estadisticas += '\n';
-    }
-    estadisticas += "===================================================\n";
+        tD2.numPC = getCurrentPC();
+        tD2.idThread = idThread;
+        tD2.idCPU = CPU2;
+        pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD2);     // primera vez.
+        ++idThread;
 
-    estadisticas += "\n Cantidad total de ciclos de reloj ejecutados: "+QString::number(contCicTotales);
+        while(true){
+            //lleva el control del reloj
+            cambiaCiclo();
+        }
+    }
 
 
     return estadisticas;
+}
+
+void principalThread::cambiaCiclo()
+{
+    sem_wait(&semReloj);
+    ++reloj;
+    pthread_mutex_unlock(&mutCPU0);
+    pthread_mutex_unlock(&mutCPU1);
+    pthread_mutex_unlock(&mutCPU2);
+}
+
+void principalThread::esperaCambioCiclo(int idCPU)
+{
+    sem_post(&semReloj);
+    switch(idCPU){
+    case CPU0:
+        pthread_mutex_lock(&mutCPU0);
+        break;
+    case CPU1:
+        pthread_mutex_lock(&mutCPU1);
+        break;
+    case CPU2:
+        pthread_mutex_lock(&mutCPU2);
+        break;
+    }
 }
 
 void principalThread::uncachPage(sDirectory* directorio, int bloqueInvalidar)
@@ -2425,6 +2354,18 @@ void principalThread::fin(int idThread, int *registros)
         }
         estadisticas += '\n';
     }*/
+}
+
+int principalThread::getCurrentPC()
+{
+    int retornar;
+    if(m_indexPC<numThreads){
+        retornar = vecPCs[m_indexPC];
+        ++m_indexPC;
+    }else{
+        retornar = -1;
+    }
+    return retornar;
 }
 
 
