@@ -173,7 +173,7 @@ private:
     //| Funciones privadas de la clase. |
     //-----------------------------------
 
-    void cambiaCiclo();
+    static void* cambiaCiclo(void* idThread);
     void esperaCambioCiclo(int idCPU);
 
     bool lw(int regX, int regY, int n, int* vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU);

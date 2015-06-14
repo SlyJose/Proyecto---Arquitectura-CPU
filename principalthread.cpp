@@ -951,10 +951,10 @@ QString principalThread::controlador()
     struct threadData tD0;
     struct threadData tD1;
     struct threadData tD2;
-    pthread_t vecThreads[3];    //vector de threads para los procesadores
-    // pthread_t hiloCiclo;
-    // pthread_create(&hiloCiclo, NUll, cambiaCiclo, NULL);
+    pthread_t vecThreads[4];    //vector de threads para los procesadores
     int idThread = 0;
+    pthread_create(&vecThreads[0], NULL, cambiaCiclo, (void*)idThread);    // Hilo que controla el reloj
+    ++idThread;
     if(numThreads >= 3){
         tD0.numPC = getCurrentPC();
         tD0.idThread = idThread;
@@ -977,7 +977,7 @@ QString principalThread::controlador()
     return estadisticas;
 }
 
-void principalThread::cambiaCiclo()
+void* principalThread::cambiaCiclo(void *idThread)
 {
     while(true){
         sem_wait(&semReloj);
