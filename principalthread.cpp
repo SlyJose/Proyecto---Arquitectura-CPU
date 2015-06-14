@@ -954,17 +954,17 @@ QString principalThread::controlador()
     if(numThreads >= 3){
         tD0.numPC = getCurrentPC();
         tD0.idThread = idThread;
-        tD0.idCPU = CPU0;
+        tD0.idCPU = idThread%3;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD0);     // Esto lo
         ++idThread;
         tD1.numPC = getCurrentPC();
         tD1.idThread = idThread;
-        tD1.idCPU = CPU1;
+        tD1.idCPU = idThread%3;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD1);     // hace la
         ++idThread;
         tD2.numPC = getCurrentPC();
         tD2.idThread = idThread;
-        tD2.idCPU = CPU2;
+        tD2.idCPU = idThread%3;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD2);     // primera vez.
         ++idThread;
 
@@ -1630,7 +1630,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
                         copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
                     }
-                    pthread_mutex_unlock(&mutDir);                    
+                    pthread_mutex_unlock(&mutDir);
                 }else{
                     return false;
                 }
@@ -1751,7 +1751,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
                         copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
                     }
-                    pthread_mutex_unlock(&mutDir1);                    
+                    pthread_mutex_unlock(&mutDir1);
                 }else{
                     return false;
                 }
@@ -1915,7 +1915,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     continuar = false;
                 }
             }
-            pthread_mutex_unlock(&mutDir);            
+            pthread_mutex_unlock(&mutDir);
         }else{
             return false;
         }
@@ -1948,7 +1948,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     continuar = false;
                 }
             }
-            pthread_mutex_unlock(&mutDir1);            
+            pthread_mutex_unlock(&mutDir1);
         }else{
             return false;
         }
@@ -1981,7 +1981,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     continuar = false;
                 }
             }
-            pthread_mutex_unlock(&mutDir2);            
+            pthread_mutex_unlock(&mutDir2);
         }else{
             return false;
         }
@@ -2324,6 +2324,7 @@ void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *
 
 void principalThread::fin(int idThread, int *registros)
 {
+
 }
 
 int principalThread::getCurrentPC()
