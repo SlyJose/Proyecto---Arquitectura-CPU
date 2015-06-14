@@ -838,6 +838,9 @@ void* principalThread::procesador(int id, int pc, int idCPU)
     }
     int IP = pc;                                     /* IP = Instruction pointer */
     int idHilo = id;
+    //if(idHilo == 0){  //hilo "papa"
+    //  cambiaCiclo();
+    //}
 
     /* Asignacion de punteros locales y externos */
 
@@ -949,42 +952,40 @@ QString principalThread::controlador()
     struct threadData tD1;
     struct threadData tD2;
     pthread_t vecThreads[3];    //vector de threads para los procesadores
-
+    // pthread_t hiloCiclo;
+    // pthread_create(&hiloCiclo, NUll, cambiaCiclo, NULL);
     int idThread = 0;
     if(numThreads >= 3){
         tD0.numPC = getCurrentPC();
         tD0.idThread = idThread;
-        tD0.idCPU = idThread%3;
+        tD0.idCPU = CPU0;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD0);     // Esto lo
         ++idThread;
         tD1.numPC = getCurrentPC();
         tD1.idThread = idThread;
-        tD1.idCPU = idThread%3;
+        tD1.idCPU = CPU1;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD1);     // hace la
         ++idThread;
         tD2.numPC = getCurrentPC();
         tD2.idThread = idThread;
-        tD2.idCPU = idThread%3;
+        tD2.idCPU = CPU2;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD2);     // primera vez.
         ++idThread;
 
-        while(true){
-            //lleva el control del reloj
-            cambiaCiclo();
-        }
     }
-
 
     return estadisticas;
 }
 
 void principalThread::cambiaCiclo()
 {
-    sem_wait(&semReloj);
-    ++reloj;
-    pthread_mutex_unlock(&mutCPU0);
-    pthread_mutex_unlock(&mutCPU1);
-    pthread_mutex_unlock(&mutCPU2);
+    while(true){
+        sem_wait(&semReloj);
+        ++reloj;
+        pthread_mutex_unlock(&mutCPU0);
+        pthread_mutex_unlock(&mutCPU1);
+        pthread_mutex_unlock(&mutCPU2);
+    }
 }
 
 void principalThread::esperaCambioCiclo(int idCPU)
@@ -1001,6 +1002,8 @@ void principalThread::esperaCambioCiclo(int idCPU)
         pthread_mutex_lock(&mutCPU2);
         break;
     }
+
+
 }
 
 void principalThread::uncachPage(sDirectory* directorio, int bloqueInvalidar)
@@ -2325,6 +2328,21 @@ void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *
 void principalThread::fin(int idThread, int *registros)
 {
 
+    //imprime las estadisticas
+    //la cola de colaPCS esta vacia?
+    if(colaPCs.empty()){
+
+    }
+    //si termina
+    //no entonces me asigna donde el empieza el cpu y vuleve a correr
+    //pocesador(idThread, getCurrentPC, idCPU);
+
+    // ** esto no es de aca **
+    //int tempReloj = reloj + 16;
+    //while(reloj < tempReloj){
+    //  esperaCambioCiclo(idCPU);
+    //}
+    // **************************
 }
 
 int principalThread::getCurrentPC()
