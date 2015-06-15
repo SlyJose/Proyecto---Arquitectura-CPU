@@ -75,72 +75,6 @@ struct sDirectory{
 };
 
 class principalThread{
-
-#ifdef __APPLE__
-    // Para Mac OSX no esta implementado pthread_barrier
-    // esta implementacion se encontro en:
-    //      http://stackoverflow.com/questions/3640853/performance-test-sem-t-v-s-dispatch-semaphore-t-and-pthread-once-t-v-s-dispat
-public:
-
-    typedef int pthread_barrierattr_t;
-    typedef struct
-    {
-        pthread_mutex_t mutex;
-        pthread_cond_t cond;
-        int count;
-        int tripCount;
-    } pthread_barrier_t;
-
-
-    int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count)
-    {
-        if(count == 0)
-        {
-            errno = EINVAL;
-            return -1;
-        }
-        if(pthread_mutex_init(&barrier->mutex, 0) < 0)
-        {
-            return -1;
-        }
-        if(pthread_cond_init(&barrier->cond, 0) < 0)
-        {
-            pthread_mutex_destroy(&barrier->mutex);
-            return -1;
-        }
-        barrier->tripCount = count;
-        barrier->count = 0;
-
-        return 0;
-    }
-
-    int pthread_barrier_destroy(pthread_barrier_t *barrier)
-    {
-        pthread_cond_destroy(&barrier->cond);
-        pthread_mutex_destroy(&barrier->mutex);
-        return 0;
-    }
-
-    int pthread_barrier_wait(pthread_barrier_t *barrier)
-    {
-        pthread_mutex_lock(&barrier->mutex);
-        ++(barrier->count);
-        if(barrier->count >= barrier->tripCount)
-        {
-            barrier->count = 0;
-            pthread_cond_broadcast(&barrier->cond);
-            pthread_mutex_unlock(&barrier->mutex);
-            return 1;
-        }
-        else
-        {
-            pthread_cond_wait(&barrier->cond, &(barrier->mutex));
-            pthread_mutex_unlock(&barrier->mutex);
-            return 0;
-        }
-    }
-
-#endif
 private:
 
     /**
@@ -178,6 +112,24 @@ private:
 
     void esperaCiclos(int numCiclos, int idCPU);
 
+    /**
+     * @brief Carga un dato desde la cache del CPU a un registro
+     * @param regX: registro donde se va a guardar
+     * @param regY: registro con el dato que va a usar como "base" para la direccion de memoria
+     * @param n: el offset de la direccion de memoria
+     * @param vecRegs: vector con los registros del CPU
+     * @param pTm: puntero a la memoria local del CPU
+     * @param pTc: puntero a la cache local del CPU
+     * @param pTd: puntero al directorio local del CPU
+     * @param pTmX: puntero a la memoria remota 1 del CPU
+     * @param pTcX: puntero a la cache remota 1 del CPU
+     * @param pTdX: puntero al directorio remoto 1 del CPU
+     * @param pTmY: puntero a la memoria remota 2 del CPU
+     * @param pTcY: puntero a la cache remota 2 del CPU
+     * @param pTdY: puntero al directorio remoto 2 del CPU
+     * @param idCPU: identifica cual CPU es
+     * @return true si logro leer el dato (subirlo al registro) / false si no pudo leer el dato (puede darse por varios motivos)
+     */
     bool lw(int regX, int regY, int n, int* vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU);
     bool sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU);
 
@@ -189,6 +141,7 @@ private:
      * @param id del bloque a invalidar
      */
     void uncachPage(sDirectory *directorio, int bloqueInvalidar);
+
     /**
      * Copia de una memoria que ya se identificó cual es a una caché que ya se sabe cual es
      * el bloque identificado por \var bloqueReemplazar
@@ -198,7 +151,9 @@ private:
      * @param Identificador del bloque que se quiere reemplazar
      */
     void copiarAmemoria(sMemory* memoria, sCach *cache, int bloqueReemplazar);
+
     void copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY);
+
     /**
      * Va a copiar de una memoria ya identificada a una cache ya identificada el bloque identificado
      * por la variable \var idBloque.
@@ -208,6 +163,7 @@ private:
      * @param bloque
      */
     void copiarAcache(sMemory* memoria, sCach* cache, int idBloque);
+
     void copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY);
 
     void fin(int idThread, int* registros, int idCPU);

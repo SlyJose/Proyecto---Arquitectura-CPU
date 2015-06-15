@@ -14,27 +14,26 @@
 /*---- Variables globales (memoria compartida) -----*/
 
 
-sMemory sMem;                // Creacion de instancias
-sCach sCache;
-sDirectory sDirect;
+sMemory sMem;               /*!< Memoria del CPU0. */
+sCach sCache;               /*!< Cache del CPU0. */
+sDirectory sDirect;         /*!< Directorio del CPU0. */
 
-sMemory sMem1;
-sCach sCache1;
-sDirectory sDirect1;
+sMemory sMem1;              /*!< Memoria del CPU1. */
+sCach sCache1;              /*!< Cache del CPU1. */
+sDirectory sDirect1;        /*!< Directorio del CPU1. */
 
-sMemory sMem2;
-sCach sCache2;
-sDirectory sDirect2;
+sMemory sMem2;              /*!< Memoria del CPU2. */
+sCach sCache2;              /*!< Cache del CPU2. */
+sDirectory sDirect2;        /*!< Directorio del CPU2. */
 
-int* vecPrograma;
-std::queue<int> colaPCs;
-int numThreads;
-int idThread;
+int* vecPrograma;           /*!< Estructura donde se van a almacenar las instrucciones de todos los programas a correr. */
+std::queue<int> colaPCs;    /*!< Cola que lleva los indices del vector del programa donde inicia cada programa nuevo. */
+int numThreads;             /*!< Numero total de programas que hay que ejecutar. */
+int idThread;               /*!< Identificador del hilo. */
+QString estadisticas;       /*!< Donde se van a guardar los datos para mostrar al final de la ejecucion. */
+int reloj;                  /*!< Va a indicar por cual ciclo de reloj se encuentran los procesadores. */
 
-QString estadisticas;
-int reloj;
-
-/* Mutex para los recursos críticos */
+/* Semaforos para los recursos críticos y para lograr sincronizacion entre los procesadores */
 pthread_mutex_t mutCache = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCache1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCache2 = PTHREAD_MUTEX_INITIALIZER;
@@ -45,17 +44,12 @@ pthread_mutex_t mutDir = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutDir1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutDir2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutClock = PTHREAD_MUTEX_INITIALIZER;
-// Para sincronizacion
-#ifdef __APPLE__
-principalThread::pthread_barrier_t barrera;
-#else
-pthread_barrier_t barrera;
-#endif
 pthread_mutex_t mutCPU0 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCPU1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCPU2 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutEstadisticas = PTHREAD_MUTEX_INITIALIZER;
 sem_t semReloj;
-/*---------------------------------------------------*/
+/*------------------------------------------------------------------------------------------*/
 
 principalThread::principalThread(QString programa, int numHilos)
 {
@@ -904,7 +898,6 @@ void* principalThread::procesador(int id, int pc, int idCPU)
     }
     int IP = pc;                                     /* IP = Instruction pointer */
     int idHilo = id;
-    qDebug()<<"Soy el CPU "<<idCPU<<" y estoy corriendo el hilo "<<idHilo;
 
     /* Asignacion de punteros locales y externos */
 
@@ -947,6 +940,8 @@ void* principalThread::procesador(int id, int pc, int idCPU)
     }
 
     while(vecPrograma[IP] != FIN){                         // Mientras no encuentre una instruccion de finalizacion
+
+        qDebug()<<"Soy el CPU "<<idCPU<<" y estoy corriendo el hilo "<<idHilo;
 
         int IR[4];  //IR = instruction register
         IR[0] = vecPrograma[IP];       //Codigo de instruccion
@@ -2548,12 +2543,6 @@ void principalThread::fin(int idThread, int *registros, int idCPU)
                                                                                             /* Ejecucion de un nuevo hilo, sobre el CPU que finalizó */
     }
 
-    // ** esto no es de aca **
-    //int tempReloj = reloj + 16;
-    //while(reloj < tempReloj){
-    //  esperaCambioCiclo(idCPU);
-    //}
-    // **************************
 }
 
 int principalThread::getCurrentPC()
@@ -2567,5 +2556,3 @@ int principalThread::getCurrentPC()
     }
     return retornar;
 }
-
-
