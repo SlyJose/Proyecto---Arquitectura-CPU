@@ -32,6 +32,7 @@ int numThreads;             /*!< Numero total de programas que hay que ejecutar.
 int idThread;               /*!< Identificador del hilo. */
 QString estadisticas;       /*!< Donde se van a guardar los datos para mostrar al final de la ejecucion. */
 int reloj;                  /*!< Va a indicar por cual ciclo de reloj se encuentran los procesadores. */
+bool finProgramas;                   /*!< Cuando ya no hay mas hilos de MIPS que correr se pone en false. */
 
 /* Semaforos para los recursos críticos y para lograr sincronizacion entre los procesadores */
 pthread_mutex_t mutCache = PTHREAD_MUTEX_INITIALIZER;
@@ -48,6 +49,7 @@ pthread_mutex_t mutCPU0 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCPU1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCPU2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutEstadisticas = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutFinal= PTHREAD_MUTEX_INITIALIZER;
 
 #ifdef __APPLE__
 principalThread::pthread_barrier_t barrera;
@@ -68,7 +70,7 @@ principalThread::principalThread(QString programa, int numHilos)
     pthread_barrier_init(&barreraCPU0, 0, 2);
     pthread_barrier_init(&barreraCPU1, 0, 2);
     pthread_barrier_init(&barreraCPU2, 0, 2);
-
+    finProgramas = true;
     idThread = 0;
     reloj = 0;
     numThreads = numHilos;
@@ -954,9 +956,9 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
         break;
     }
 
-    while(vecPrograma[IP] != FIN){                         // Mientras no encuentre una instruccion de finalizacion
+    qDebug()<<"Soy el CPU "<<idCPU<<" y estoy corriendo el hilo "<<idHilo;  //Indica cual hilo esta corriendo
 
-        qDebug()<<"Soy el CPU "<<idCPU<<" y estoy corriendo el hilo "<<idHilo;
+    while(vecPrograma[IP] != FIN){                         // Mientras no encuentre una instruccion de finalizacion
 
         int IR[4];  //IR = instruction register
         IR[0] = vecPrograma[IP];       //Codigo de instruccion
@@ -986,12 +988,14 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
             qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un LW";
             while(lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU) == false) {
                 esperaCiclos(1, idCPU);
+                qDebug()<<"CPU"<<QString::number(idCPU)<<" todavia esta ejecutando un LW";
             }         //Rx <- M(n + (Ry))
             break;
         case SW:
             qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un SW";
             while(sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU)==false){
                 esperaCiclos(1, idCPU);
+                qDebug()<<"CPU"<<QString::number(idCPU)<<" todavia esta ejecutando un SW";
             };           //M(n + (Ry)) <- Rx
             break;
         case BEQZ:
@@ -1052,9 +1056,18 @@ QString principalThread::controlador()
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD2);     // primera vez.
         ++idThread;
 
-        pthread_join(vecThreads[0], NULL);       // Espera a que
-        pthread_join(vecThreads[1], NULL);      // todos los hilos
-        pthread_join(vecThreads[2], NULL);      // terminen de correr.
+        pthread_join(vecThreads[1], NULL);      // Espera a que
+        pthread_join(vecThreads[2], NULL);      // todos los hilos
+        pthread_join(vecThreads[3], NULL);      // terminen de correr.
+        pthread_mutex_lock(&mutFinal);
+        finProgramas = false;        // Para que termine el hilo de los ciclos
+        pthread_mutex_unlock(&mutFinal);
+        pthread_join(vecThreads[0], NULL);      //Espera a que termine el que hilo que cotrola el reloj.
+        pthread_mutex_lock(&mutEstadisticas);
+        /*
+         * Tengo que imprimir la memoria.
+         */
+        pthread_mutex_unlock(&mutEstadisticas);
     }
 
 
@@ -1066,7 +1079,9 @@ void* principalThread::cambiaCiclo(void *idThread)
 
     long threadID = (long)idThread;
     qDebug()<<"Soy el hilo: "<<threadID<<" que controlo los ciclos de reloj";
-    while(true){
+    pthread_mutex_lock(&mutFinal);
+    while(finProgramas){
+        pthread_mutex_unlock(&mutFinal);
         pthread_barrier_wait(&barrera);
         ++reloj;
         qDebug()<<"Voy por el ciclo: "<<reloj;
@@ -1075,6 +1090,7 @@ void* principalThread::cambiaCiclo(void *idThread)
         pthread_barrier_wait(&barreraCPU2);
 
     }
+    pthread_exit(NULL); // Termina el proceso.
 }
 
 void principalThread::esperaCambioCiclo(int idCPU)
