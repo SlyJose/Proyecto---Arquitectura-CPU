@@ -991,8 +991,6 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
     if(vecPrograma[IP] == FIN){
         fin(idHilo, registros, idCPU, cicloInicio);
     }
-
-    pthread_exit(NULL);
 }
 
 void *principalThread::procesadorHelper(void *threadStruct)
@@ -2625,7 +2623,9 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
     }
     pthread_mutex_unlock(&mutEstadisticas);
 
-    if(colaPCs.empty() == false){                                                                    /* Verificacion sobre las instrucciones restantes por ejecutar */
+    if(colaPCs.empty()){                /* Verificacion sobre las instrucciones restantes por ejecutar */
+        pthread_exit(NULL);             //termina la ejecucion de esa CPU
+    }else{
         procesador(idThread+1, getCurrentPC(), idCPU, reloj);                                 /* El identificador del hilo a correr aumenta ya que es nuevo */
         /* Ejecucion de un nuevo hilo, sobre el CPU que finalizó */
     }
