@@ -48,13 +48,28 @@ pthread_mutex_t mutCPU0 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCPU1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCPU2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutEstadisticas = PTHREAD_MUTEX_INITIALIZER;
-sem_t semReloj;
+
+#ifdef __APPLE__
+principalThread::pthread_barrier_t barrera;
+principalThread::pthread_barrier_t barreraCPU0;
+principalThread::pthread_barrier_t barreraCPU1;
+principalThread::pthread_barrier_t barreraCPU2;
+#else
+pthread_barrier_t barrera;
+pthread_barrier_t barreraCPU0;
+pthread_barrier_t barreraCPU1;
+pthread_barrier_t barreraCPU2;
+#endif
 /*------------------------------------------------------------------------------------------*/
 
 principalThread::principalThread(QString programa, int numHilos)
 {
+    pthread_barrier_init(&barrera, 0, 4);
+    pthread_barrier_init(&barreraCPU0, 0, 2);
+    pthread_barrier_init(&barreraCPU1, 0, 2);
+    pthread_barrier_init(&barreraCPU2, 0, 2);
+
     idThread = 0;
-    sem_init(&semReloj, 0, 3);  //inicializo el semaforo en 3
     reloj = 0;
     numThreads = numHilos;
     QString::iterator it;
@@ -1002,6 +1017,7 @@ void *principalThread::procesadorHelper(void *threadStruct)
 
 QString principalThread::controlador()
 {
+
     struct threadData tD0;
     struct threadData tD1;
     struct threadData tD2;
@@ -1039,30 +1055,32 @@ QString principalThread::controlador()
 
 void* principalThread::cambiaCiclo(void *idThread)
 {
+
     long threadID = (long)idThread;
     qDebug()<<"Soy el hilo: "<<threadID<<" que controlo los ciclos de reloj";
     while(true){
-        sem_wait(&semReloj);
+        pthread_barrier_wait(&barrera);
         ++reloj;
-        qDebug()<<"Ciclo: "<<reloj;
-        pthread_mutex_unlock(&mutCPU0);
-        pthread_mutex_unlock(&mutCPU1);
-        pthread_mutex_unlock(&mutCPU2);
+        qDebug()<<"Voy por el ciclo: "<<reloj;
+        pthread_barrier_wait(&barreraCPU0);
+        pthread_barrier_wait(&barreraCPU1);
+        pthread_barrier_wait(&barreraCPU2);
+
     }
 }
 
 void principalThread::esperaCambioCiclo(int idCPU)
 {
-    sem_post(&semReloj);
+    pthread_barrier_wait(&barrera);
     switch(idCPU){
     case CPU0:
-        pthread_mutex_lock(&mutCPU0);
+        pthread_barrier_wait(&barreraCPU0);
         break;
     case CPU1:
-        pthread_mutex_lock(&mutCPU1);
+        pthread_barrier_wait(&barreraCPU1);
         break;
     case CPU2:
-        pthread_mutex_lock(&mutCPU2);
+        pthread_barrier_wait(&barreraCPU2);
         break;
     }
 }
