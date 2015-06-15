@@ -388,6 +388,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache1);
+                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
+                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         // Libero los recursos que habia adquirido
                                         pthread_mutex_unlock(&mutDir);
@@ -404,8 +407,10 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTcY->cache[5][bloqueCache] = C;
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
-                                        // me dedico a gastar ciclos y hasta que pasen puedo liberar todos los recursos **** HAY QUE IMPLEMENTARLO
                                         pthread_mutex_unlock(&mutCache2);
+                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
+                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         // Libero los recursos que habia adquirido
                                         pthread_mutex_unlock(&mutDir);
@@ -425,6 +430,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache);
+                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
+                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache1);
@@ -441,6 +449,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache2);
+                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
+                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache1);
@@ -459,6 +470,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache);
+                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
+                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir2);
                                         pthread_mutex_unlock(&mutCache2);
@@ -475,6 +489,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache1);
+                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
+                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir2);
                                         pthread_mutex_unlock(&mutCache2);
@@ -484,15 +501,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 break;
                             }
                         }
-
-                        //subo el bloque de memoria a cache
-                        esperaCiclos(16, idCPU);    //Dura 16 ciclos en subir un bloque de memoria local a la cache
-                        for(int i=0; i<4; ++i){
-                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
-                        }
-
                     }
-
                     switch(idCPU){  //libero el directorio local
                     case CPU0:
                         pthread_mutex_unlock(&mutDir);
@@ -541,12 +550,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                             case CPU0:
                                 if(pTdX->directory[posDirectorio][3] == 1){
                                     if(pthread_mutex_trylock(&mutCache1) == 0){
-                                        esperaCiclos(16, idCPU);    //Dura 16 ciclos en copiar de cache remota 1 a memoria remota 1 (es como si fueran locales las 2)
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmX, pTcX, numBloque);
                                         pTcX->cache[5][bloqueCache] = C;
                                         pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio remoto 1
                                         pTdX->directory[posDirectorio][2] = 1;
                                         pthread_mutex_unlock(&mutCache1);
+                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         //libero directorio y cache
                                         pthread_mutex_unlock(&mutDir1);
@@ -556,17 +568,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 if(pTdX->directory[posDirectorio][4] == 1){
                                     if(pthread_mutex_trylock(&mutCache2) == 0){
-                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria local
-
-                                        //----------------------------------------------------------------------
-                                        //|************ Aqui hay que esperar que responde la profe ************|
-                                        //----------------------------------------------------------------------
-
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmX, pTcY, numBloque);
                                         pTcY->cache[5][bloqueCache] = C;
                                         pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio remoto 1
                                         pTdX->directory[posDirectorio][2] = 1;
                                         pthread_mutex_unlock(&mutCache2);
+                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         //libero directorio y cache
                                         pthread_mutex_unlock(&mutDir1);
@@ -578,12 +588,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                             case CPU1:
                                 if(pTdX->directory[posDirectorio][2] == 1){
                                     if(pthread_mutex_trylock(&mutCache)){
-                                        esperaCiclos(16, idCPU);    //Dura 16 ciclos en copiar de cache remota 1 a memoria remota 1 (es como si fueran locales las 2)
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmX, pTcX, numBloque);
                                         pTcX->cache[5][bloqueCache] = C;
                                         pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio remoto 1
                                         pTdX->directory[posDirectorio][3] = 1;
                                         pthread_mutex_unlock(&mutCache);
+                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir);
                                         pthread_mutex_unlock(&mutCache1);
@@ -593,17 +606,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 if(pTdX->directory[posDirectorio][4] == 1){
                                     if(pthread_mutex_trylock(&mutCache2)){
-                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria local
-
-                                        //----------------------------------------------------------------------
-                                        //|************ Aqui hay que esperar que responde la profe ************|
-                                        //----------------------------------------------------------------------
-
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmX, pTcY, numBloque);
                                         pTcY->cache[5][bloqueCache] = C;
                                         pTdX->directory[posDirectorio][1] = C;
                                         pTdX->directory[posDirectorio][3] = 1;
                                         pthread_mutex_unlock(&mutCache2);
+                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir);
                                         pthread_mutex_unlock(&mutCache1);
@@ -614,12 +625,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                             case CPU2:
                                 if(pTdX->directory[posDirectorio][2] == 1){
                                     if(pthread_mutex_trylock(&mutCache) == 0){
-                                        esperaCiclos(16, idCPU);    //Dura 16 ciclos en copiar de cache remota 1 a memoria remota 1 (es como si fueran locales las 2)
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmX, pTcX, numBloque);
                                         pTcX->cache[5][bloqueCache] = C;
                                         pTdX->directory[posDirectorio][1] = C;
                                         pTdX->directory[posDirectorio][4] = 1;
                                         pthread_mutex_unlock(&mutCache);
+                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
+                                        }
 
                                     }else{
                                         pthread_mutex_unlock(&mutDir);
@@ -629,17 +643,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 if(pTdX->directory[posDirectorio][3] == 1){
                                     if(pthread_mutex_trylock(&mutCache1) == 0){
-                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria local
-
-                                        //----------------------------------------------------------------------
-                                        //|************ Aqui hay que esperar que responde la profe ************|
-                                        //----------------------------------------------------------------------
-
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmX, pTcY, numBloque);
                                         pTcY->cache[5][bloqueCache] = C;
                                         pTdX->directory[posDirectorio][1] = C;
                                         pTdX->directory[posDirectorio][4] = 1;
                                         pthread_mutex_unlock(&mutCache1);
+                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir);
                                         pthread_mutex_unlock(&mutCache2);
@@ -648,14 +660,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 break;
                             }
-
                         }
-                        // Sube el bloque de la memoria remota 1 a la mi cache
-                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en subir a la cache un bloque desde memoria remota
-                        for(int i=0; i<4; ++i){
-                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
-                        }
-
                     }
                     // Libera el directorio remoto 1
                     switch(idCPU){
@@ -706,18 +711,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                             case CPU0:
                                 if(pTdY->directory[posDirectorio][3] == 1){ //CPU1 lo tiene modificado?
                                     if(pthread_mutex_trylock(&mutCache1)){
-                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria local
-
-                                        //----------------------------------------------------------------------
-                                        //|************ Aqui hay que esperar que responde la profe ************|
-                                        //----------------------------------------------------------------------
-
-
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmY, pTcX, numBloque);
                                         pTcX->cache[5][bloqueCache] = C;
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][2] = 1;
                                         pthread_mutex_unlock(&mutCache1);
+                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         //libero directorio y cache
                                         pthread_mutex_unlock(&mutDir2);
@@ -727,12 +729,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 if(pTdY->directory[posDirectorio][4] == 1){ //CPU2 lo tiene modificado?
                                     if(pthread_mutex_trylock(&mutCache2)){
-                                        esperaCiclos(16, idCPU);    //Dura 16 ciclos en pasar de la cache remota 2 a la memoria remota 2 (es como pasar de cache local a memoria local)
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmY, pTcY, numBloque);
                                         pTcY->cache[5][bloqueCache] = C;
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][2] = 1;
                                         pthread_mutex_unlock(&mutCache2);
+                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         //libero directorio y cache
                                         pthread_mutex_unlock(&mutDir2);
@@ -744,18 +749,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                             case CPU1:
                                 if(pTdY->directory[posDirectorio][2] == 1){ //CPU0 lo tiene modificado?
                                     if(pthread_mutex_trylock(&mutCache)){
-                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria local
-
-                                        //----------------------------------------------------------------------
-                                        //|************ Aqui hay que esperar que responde la profe ************|
-                                        //----------------------------------------------------------------------
-
-
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmY, pTcX, numBloque);
                                         pTcX->cache[5][bloqueCache] = C;
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][3] = 1;
                                         pthread_mutex_unlock(&mutCache);
+                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache1);
@@ -765,12 +767,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 if(pTdY->directory[posDirectorio][4] == 1){ //CPU2 lo tiene modificado?
                                     if(pthread_mutex_trylock(&mutCache2)){
-                                        esperaCiclos(16, idCPU);    //Dura 16 ciclos en pasar de cache remota 2 a memoria remota 2 (es como pasar de cache local a memoria local)
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmY, pTcY, numBloque);
                                         pTcY->cache[5][bloqueCache] = C;
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][3] = 1;
                                         pthread_mutex_unlock(&mutCache2);
+                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache1);
@@ -781,18 +786,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                             case CPU2:
                                 if(pTdY->directory[posDirectorio][2] == 1){ //CPU0 lo tiene modificado?
                                     if(pthread_mutex_trylock(&mutCache)){
-                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria local
-
-                                        //----------------------------------------------------------------------
-                                        //|************ Aqui hay que esperar que responde la profe ************|
-                                        //----------------------------------------------------------------------
-
-
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cache remota a memoria
                                         copiarAmemoria(pTmY, pTcX, numBloque);
                                         pTcX->cache[5][bloqueCache] = C;
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][4] = 1;
                                         pthread_mutex_unlock(&mutCache);
+                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache2);
@@ -801,12 +803,15 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 if(pTdY->directory[posDirectorio][3] == 1){ //CPU1 lo tiene modificado?
                                     if(pthread_mutex_trylock(&mutCache1)){
-                                        esperaCiclos(16, idCPU);    //Dura 16 ciclos en pasar de cache remota 2 a memoria remota 2 (es como pasar de cache local a memoria local)
+                                        esperaCiclos(32, idCPU);    //Dura 32 ciclos en pasar un bloque de cachce remota a memoria
                                         copiarAmemoria(pTmY, pTcY, numBloque);
                                         pTcY->cache[5][bloqueCache] = C;
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][4] = 1;
                                         pthread_mutex_unlock(&mutCache1);
+                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
+                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
+                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache2);
@@ -815,11 +820,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 break;
                             }
-                        }
-                        // Subo el bloque de la memoria remota 2 a mi cache
-                        esperaCiclos(32, idCPU);        //Dura 32 ciclos en pasar de una memoria remota a la cache local
-                        for(int i=0; i<4; ++i){
-                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
                         }
                     }
                     // Libera el directorio remoto 2
@@ -1114,7 +1114,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     /* Ciclo de verificacion en cache local */
 
     switch (idCPU) {                                                                                 // Bloqueo de la cache local
-    case CPU0:        
+    case CPU0:
         resultBlockCache = pthread_mutex_trylock(&mutCache);
         break;
     case CPU1:
@@ -2540,7 +2540,7 @@ void principalThread::fin(int idThread, int *registros, int idCPU)
 
     }else{
         procesador(idThread+1, getCurrentPC(), currentCPU);                                 /* El identificador del hilo a correr aumenta ya que es nuevo */
-                                                                                            /* Ejecucion de un nuevo hilo, sobre el CPU que finalizó */
+        /* Ejecucion de un nuevo hilo, sobre el CPU que finalizó */
     }
 
 }
