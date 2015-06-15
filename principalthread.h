@@ -208,7 +208,7 @@ private:
     void copiarAcache(sMemory* memoria, sCach* cache, int idBloque);
     void copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY);
 
-    void fin(int idThread, int* registros);
+    void fin(int idThread, int* registros, int idCPU);
 
     int getCurrentPC();
 

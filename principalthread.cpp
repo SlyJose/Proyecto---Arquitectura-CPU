@@ -930,7 +930,7 @@ void* principalThread::procesador(int id, int pc, int idCPU)
         }
     }
     if(vecPrograma[IP] == FIN){
-        fin(idHilo, registros);
+        fin(idHilo, registros, idCPU);
     }
 
     pthread_exit(NULL);
@@ -1040,11 +1040,13 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     int resultBlockCacheY;
     int resultBlockDirectY;
 
+    int tempReloj;                                                                              // Variable temporal que espera que se cumplan los ciclos de reloj necesarios para usar un recurso
+
 
     /* Ciclo de verificacion en cache local */
 
     switch (idCPU) {                                                                                 // Bloqueo de la cache local
-    case CPU0:
+    case CPU0:        
         resultBlockCache = pthread_mutex_trylock(&mutCache);
         break;
     case CPU1:
@@ -1096,6 +1098,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 if(numBloque < 8){								                                                            // Bloque a modificar en el directorio local
                     resultBlockDirect = pthread_mutex_trylock(&mutDir);
                     if(resultBlockDirect == 0){
+                        tempReloj = reloj + 2;                  // Directorio local tarda 2 ciclos
+                        while(reloj < tempReloj){
+                            esperaCambioCiclo(idCPU);
+                        }
                         for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
                             if(pTd->directory[i][0] == numBloque){
                                 bool recorrer = true;
@@ -1103,6 +1109,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU0:
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1117,6 +1127,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1134,6 +1148,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU1:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1148,6 +1166,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1165,6 +1187,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU2:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1179,6 +1205,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1224,6 +1254,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 if(numBloque > 7 && numBloque < 16 ){                            					    // Bloque a reemplazar en el directorio externo X
                     resultBlockDirectX = pthread_mutex_trylock(&mutDir1);
                     if(resultBlockDirectX == 0){
+                        tempReloj = reloj + 4;                  // Directorio externo tarda 4 ciclos
+                        while(reloj < tempReloj){
+                            esperaCambioCiclo(idCPU);
+                        }
                         for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio X */
                             if(pTdX->directory[i][0] == numBloque){
                                 bool recorrer = true;
@@ -1231,6 +1265,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU0:
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1245,6 +1283,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1262,6 +1304,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU1:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1276,6 +1322,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1293,6 +1343,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU2:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1307,6 +1361,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1352,6 +1410,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 if(numBloque > 15){                                                            // Bloque a reemplazar en el directorio externo Y
                     resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
                     if(resultBlockDirectY == 0){
+                        tempReloj = reloj + 4;                  // Directorio remoto tarda 4 ciclos
+                        while(reloj < tempReloj){
+                            esperaCambioCiclo(idCPU);
+                        }
                         for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio Y */
                             if(pTdY->directory[i][0] == numBloque){
                                 bool recorrer = true;
@@ -1359,6 +1421,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU0:
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1373,6 +1439,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1390,6 +1460,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU1:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1404,6 +1478,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1421,6 +1499,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU2:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1435,6 +1517,10 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        tempReloj = reloj + 1;                  // Invalidacion de bloque en cache, tarda 1 ciclo
+                                        while(reloj < tempReloj){
+                                            esperaCambioCiclo(idCPU);
+                                        }
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1522,6 +1608,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 resultBlockDirect = pthread_mutex_trylock(&mutDir);
                 bool continuar = true;
                 if(resultBlockDirect == 0){
+                    esperaCiclos(2, idCPU);                                                 // Directorio local tarda 2 ciclos
                     for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
                         if(pTd->directory[i][0] == numBloqueReemplazar){                                        /* Se coloca el estado de los CPU en 0 */
                             if(pTc->cache[5][bloqueCache] == C && !modificado){                                 /* Si esta compartido, debe invalidarse el bloque en las otras caches */
@@ -1530,6 +1617,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU0:
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        esperaCiclos(1, idCPU);                             // Invalidacion bloque en cache, tarda 2 ciclos
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloqueReemplazar && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1544,6 +1632,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        esperaCiclos(1, idCPU);                             // Invalidacion bloque en cache, tarda 2 ciclos
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloqueReemplazar && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1561,6 +1650,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU1:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        esperaCiclos(1, idCPU);                             // Invalidacion bloque en cache, tarda 2 ciclos
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloqueReemplazar && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1575,6 +1665,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        esperaCiclos(1, idCPU);                             // Invalidacion bloque en cache, tarda 2 ciclos
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloqueReemplazar && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1592,6 +1683,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU2:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        esperaCiclos(1, idCPU);                             // Invalidacion bloque en cache, tarda 2 ciclos
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloqueReemplazar && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1606,6 +1698,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        esperaCiclos(1, idCPU);                             // Invalidacion bloque en cache, tarda 2 ciclos
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloqueReemplazar && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1631,6 +1724,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         }
                     }
                     if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
+                        esperaCiclos(16, idCPU);                                                     // Escritura a memoria local
                         copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
                     }
                     pthread_mutex_unlock(&mutDir);
@@ -1643,6 +1737,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 resultBlockDirectX = pthread_mutex_trylock(&mutDir1);
                 bool continuar = true;
                 if(resultBlockDirectX == 0){
+                    esperaCiclos(4, idCPU);                                                         // Directorio externo tarda 4 ciclos
                     for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio X */
                         if(pTdX->directory[i][0] == numBloqueReemplazar){                                       /* Se coloca el estado de los CPU en 0 */
                             if(pTc->cache[5][bloqueCache] == C && !modificado){                                 /* Si esta compartido, debe invalidarse el bloque en las otras caches */
@@ -1651,6 +1746,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU0:
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        esperaCiclos(1, idCPU);                                     // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloqueReemplazar && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1665,6 +1761,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        esperaCiclos(1, idCPU);                                     // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloqueReemplazar && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1682,6 +1779,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU1:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        esperaCiclos(1, idCPU);                                     // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloqueReemplazar && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1696,6 +1794,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        esperaCiclos(1, idCPU);                                     // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloqueReemplazar && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1713,6 +1812,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU2:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        esperaCiclos(1, idCPU);                                     // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloqueReemplazar && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1727,6 +1827,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        esperaCiclos(1, idCPU);                                     // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloqueReemplazar && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1752,6 +1853,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         }
                     }
                     if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
+                        esperaCiclos(32, idCPU);                                                     // Escritura de bloque a memoria externa tarda 32 ciclos
                         copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
                     }
                     pthread_mutex_unlock(&mutDir1);
@@ -1764,6 +1866,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
                 bool continuar = true;
                 if(resultBlockDirectY == 0){
+                    esperaCiclos(4, idCPU);                                                          // Directorio remoto tarda 4 ciclos
                     for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio Y */
                         if(pTdY->directory[i][0] == numBloqueReemplazar){                                       /* Se coloca el estado de los CPU en 0 */
 
@@ -1773,6 +1876,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU0:
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        esperaCiclos(1, idCPU);                                                 // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloqueReemplazar && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1787,6 +1891,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        esperaCiclos(1, idCPU);                                                 // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloqueReemplazar && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1804,6 +1909,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU1:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        esperaCiclos(1, idCPU);                                                 // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloqueReemplazar && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1818,6 +1924,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
                                     if(resultBlockCacheY == 0){
+                                        esperaCiclos(1, idCPU);                                                 // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloqueReemplazar && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1835,6 +1942,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 case CPU2:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
+                                        esperaCiclos(1, idCPU);                                                 // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcX->cache[4][j] == numBloqueReemplazar && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcX->cache[5][j] = I;
@@ -1849,6 +1957,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
                                     if(resultBlockCacheX == 0){
+                                        esperaCiclos(1, idCPU);                                                 // Invalidacion de bloque en cache, tarda 1 ciclo
                                         for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                                             if(pTcY->cache[4][j] == numBloqueReemplazar && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
                                                 pTcY->cache[5][j] = I;
@@ -1875,6 +1984,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         }
                     }
                     if(modificado){                                                                  // Se guarda el bloque en memoria, el directorio bloqueado permite el uso de la memoria
+                        esperaCiclos(32, idCPU);                                                     // Se copia el bloque a memoria externa, tarda 32 ciclos
                         copiarAmemoria(pTc, bloqueCache, pTm, pTmX, pTmY);                           // Bloque almacenado en memoria
                     }
                     pthread_mutex_unlock(&mutDir2);
@@ -1895,6 +2005,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         resultBlockDirect = pthread_mutex_trylock(&mutDir);
         bool continuar = true;
         if(resultBlockDirect == 0){
+            esperaCiclos(2, idCPU);                                                                             // Directorio local tarda 2 ciclos
             for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio local */
                 if(pTd->directory[i][0] == numBloque){
                     pTd->directory[i][1] = M;
@@ -1928,6 +2039,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         resultBlockDirectX = pthread_mutex_trylock(&mutDir1);
         bool continuar = true;
         if(resultBlockDirectX == 0){
+            esperaCiclos(4, idCPU);                                                         // Directorio remoto tarda 4 ciclos
             for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio X */
                 if(pTdX->directory[i][0] == numBloque){
                     pTdX->directory[i][1] = M;
@@ -1961,6 +2073,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
         bool continuar = true;
         if(resultBlockDirectY == 0){
+            esperaCiclos(4, idCPU);                                                // Directorio remoto tarda 4 ciclos
             for(int i = 0; i < 8 && continuar; ++i){                                                    /* Busqueda en directorio Y */
                 if(pTdY->directory[i][0] == numBloque){
                     pTdY->directory[i][1] = M;
@@ -2002,12 +2115,15 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
         if(resultBlockCacheX == 0){
             for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
-                if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
+                if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                    // El bloque esta compartido en los CPU externos, se invalida
+                    esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
                     pTcX->cache[5][j] = I;
                     encontrado = true;
                     recorrer = false;
                 }else{
                     if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == M){                 // El bloque esta compartido en el CPU externo X , el bloque esta modificado
+                        esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
+                        esperaCiclos(32, idCPU);                                                 // Escritura de bloque a memoria remota, tarda 32 ciclos
                         copiarAmemoria(pTcX, j, pTm, pTmX, pTmY);                                // Se almacena en memoria
                         pTcX->cache[5][j] = I;
                         encontrado = true;
@@ -2025,11 +2141,14 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         if(resultBlockCacheY == 0){
             for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                 if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
+                    esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
                     pTcY->cache[5][j] = I;
                     encontrado = true;
                     recorrer = false;
                 }else{
                     if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == M){                // El bloque esta compartido en el CPU externo Y, el bloque esta modificado
+                        esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
+                        esperaCiclos(32, idCPU);                                                 // Escritura de bloque a memoria remota, tarda 32 ciclos
                         copiarAmemoria(pTcY, j, pTm, pTmX, pTmY);                               // Se almacena en memoria
                         pTcY->cache[5][j] = I;
                         encontrado = true;
@@ -2050,11 +2169,14 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         if(resultBlockCache == 0){
             for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                 if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
+                    esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
                     pTcX->cache[5][j] = I;
                     encontrado = true;
                     recorrer = false;
                 }else{
                     if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == M){                 // El bloque esta compartido en el CPU externo X , el bloque esta modificado
+                        esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
+                        esperaCiclos(32, idCPU);                                                 // Escritura de bloque a memoria remota, tarda 32 ciclos
                         copiarAmemoria(pTcX, j, pTm, pTmX, pTmY);                                // Se almacena en memoria
                         pTcX->cache[5][j] = I;
                         encontrado = true;
@@ -2072,11 +2194,14 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         if(resultBlockCacheY == 0){
             for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                 if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
+                    esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
                     pTcY->cache[5][j] = I;
                     encontrado = true;
                     recorrer = false;
                 }else{
                     if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == M){                // El bloque esta compartido en el CPU externo Y, el bloque esta modificado
+                        esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
+                        esperaCiclos(32, idCPU);                                                 // Escritura de bloque a memoria remota, tarda 32 ciclos
                         copiarAmemoria(pTcY, j, pTm, pTmX, pTmY);                               // Se almacena en memoria
                         pTcY->cache[5][j] = I;
                         encontrado = true;
@@ -2097,11 +2222,14 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         if(resultBlockCache == 0){
             for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                 if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
+                    esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
                     pTcX->cache[5][j] = I;
                     encontrado = true;
                     recorrer = false;
                 }else{
                     if(pTcX->cache[4][j] == numBloque && pTcX->cache[5][j] == M){                 // El bloque esta compartido en el CPU externo X , el bloque esta modificado
+                        esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
+                        esperaCiclos(32, idCPU);                                                 // Escritura de bloque a memoria remota, tarda 32 ciclos
                         copiarAmemoria(pTcX, j, pTm, pTmX, pTmY);                                // Se almacena en memoria
                         pTcX->cache[5][j] = I;
                         encontrado = true;
@@ -2119,11 +2247,14 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         if(resultBlockCacheX == 0){
             for(int j = 0; j < 4 && recorrer; ++j){                                              // Se modifica el estado en las caches
                 if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == C){                     // El bloque esta compartido en los CPU externos, se invalida
+                    esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
                     pTcY->cache[5][j] = I;
                     encontrado = true;
                     recorrer = false;
                 }else{
                     if(pTcY->cache[4][j] == numBloque && pTcY->cache[5][j] == M){                // El bloque esta compartido en el CPU externo Y, el bloque esta modificado
+                        esperaCiclos(1, idCPU);                                                      // Invalidacion de bloque, tarda 1 ciclo
+                        esperaCiclos(32, idCPU);                                                 // Escritura de bloque a memoria remota, tarda 32 ciclos
                         copiarAmemoria(pTcY, j, pTm, pTmX, pTmY);                               // Se almacena en memoria
                         pTcY->cache[5][j] = I;
                         recorrer = false;
@@ -2142,6 +2273,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
     if(encontrado){                                                                                 /* El bloque se encontraba en una cache externa
                                                                                                               y fue subido a cache local de memoria */
+        esperaCiclos(32, idCPU);                                                                    // Escritura de memoria remota a cache local, tarda 32 ciclos
         copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);                                 // Se sube el bloque a cache local
         pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
         pTc->cache[5][bloqueCache] = M;
@@ -2173,6 +2305,8 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     if(numBloque < 8){                                                                          // Revision de directorios
         resultBlockDirect = pthread_mutex_trylock(&mutDir);
         if(resultBlockDirect == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
+            esperaCiclos(2, idCPU);                                                             // Directorio local tarda 2 ciclos
+            esperaCiclos(16, idCPU);                                                             // Escritura de bloque en memoria local a cache local, tarda 16 ciclos
             copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
             pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
             pTc->cache[5][bloqueCache] = M;
@@ -2198,6 +2332,8 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     if(numBloque > 7 && numBloque < 16){
         resultBlockDirectX = pthread_mutex_trylock(&mutDir1);
         if(resultBlockDirectX == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
+            esperaCiclos(4, idCPU);                                                             // Directorio remoto tarda 4 ciclos
+            esperaCiclos(32, idCPU);                                                             // Escritura de bloque en memoria remota a cache local, tarda 32 ciclos
             copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
             pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
             pTc->cache[5][bloqueCache] = M;
@@ -2223,6 +2359,8 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     if(numBloque > 15){
         resultBlockDirectY = pthread_mutex_trylock(&mutDir2);
         if(resultBlockDirectY == 0){                                                             // Debe bloquearse el directorio del bloque para utilizar la memoria
+            esperaCiclos(4, idCPU);                                                             // Directorio remoto tarda 4 ciclos
+            esperaCiclos(32, idCPU);                                                             // Escritura de bloque en memoria remota a cache local, tarda 32 ciclos
             copiarAcache(pTc, bloqueCache, numBloque, pTm, pTmX, pTmY);
             pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];
             pTc->cache[5][bloqueCache] = M;
@@ -2325,17 +2463,17 @@ void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *
 }
 
 
-void principalThread::fin(int idThread, int *registros)
+void principalThread::fin(int idThread, int *registros, int idCPU)
 {
 
-    //imprime las estadisticas
-    //la cola de colaPCS esta vacia?
-    if(colaPCs.empty()){
+    int currentCPU = idCPU;
+    if(colaPCs.empty()){                                                                    /* Verificacion sobre las instrucciones restantes por ejecutar */
+        //imprime las estadisticas
 
+    }else{
+        procesador(idThread+1, getCurrentPC(), currentCPU);                                 /* El identificador del hilo a correr aumenta ya que es nuevo */
+                                                                                            /* Ejecucion de un nuevo hilo, sobre el CPU que finalizó */
     }
-    //si termina
-    //no entonces me asigna donde el empieza el cpu y vuleve a correr
-    //pocesador(idThread, getCurrentPC, idCPU);
 
     // ** esto no es de aca **
     //int tempReloj = reloj + 16;
