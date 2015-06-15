@@ -968,34 +968,41 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
 
         switch(IR[0]){
         case DADDI:
+            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un DADDI";
             registros[IR[2]] = registros[IR[1]] + IR[3];                //Rx <- Ry + n       |  Las tres instrucciones
             esperaCiclos(1, idCPU);
             break;
         case DADD:
+            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un DADD";
             registros[IR[3]] = registros[IR[1]] + registros[IR[2]];     //Rx <- Ry + Rz      |  tardan un ciclo de reloj
             esperaCambioCiclo(idCPU);
             break;
         case DSUB:
+            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un DSUB";
             registros[IR[3]] = registros[IR[1]] - registros[IR[2]];     //Rx <- Ry - Rz      |  cada una.
             esperaCiclos(1, idCPU);
             break;
         case LW:
+            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un LW";
             while(lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU) == false) {
                 esperaCiclos(1, idCPU);
             }         //Rx <- M(n + (Ry))
             break;
         case SW:
+            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un SW";
             while(sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU)==false){
                 esperaCiclos(1, idCPU);
             };           //M(n + (Ry)) <- Rx
             break;
         case BEQZ:
+            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un BEQZ";
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
                 IP += (IR[3])*4;
             }
             esperaCiclos(1, idCPU);
             break;
         case BNEZ:
+            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un BNEZ";
             if(registros[IR[1]] != 0){                                  //Rx != 0, salta
                 IP += (IR[3])*4;
             }
@@ -1004,6 +1011,7 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
         }
     }
     if(vecPrograma[IP] == FIN){
+        qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un FIN";
         fin(idHilo, registros, idCPU, cicloInicio);
     }
 }
