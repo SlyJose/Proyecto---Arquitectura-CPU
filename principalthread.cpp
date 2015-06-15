@@ -874,7 +874,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     return false;
 }
 
-void* principalThread::procesador(int id, int pc, int idCPU)
+void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
 {
     /* Se crea un puntero para cada estructura que permita al metodo a llamar, identificar
     cual memoria-cache-directorio de CPU debe utilizar de forma local-externa */
@@ -989,7 +989,7 @@ void* principalThread::procesador(int id, int pc, int idCPU)
         }
     }
     if(vecPrograma[IP] == FIN){
-        fin(idHilo, registros, idCPU);
+        fin(idHilo, registros, idCPU, cicloInicio);
     }
 
     pthread_exit(NULL);
@@ -999,7 +999,7 @@ void *principalThread::procesadorHelper(void *threadStruct)
 {
     struct threadData *td;
     td = (struct threadData*)threadStruct;
-    return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->idCPU);
+    return static_cast<principalThread*>(td->ptr)->procesador(td->idThread, td->numPC, td->idCPU, td->cicloInicio);
 }
 
 QString principalThread::controlador()
@@ -1014,16 +1014,19 @@ QString principalThread::controlador()
         tD0.numPC = getCurrentPC();
         tD0.idThread = idThread;
         tD0.idCPU = CPU0;
+        tD0.cicloInicio = reloj;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD0);     // Esto lo
         ++idThread;
         tD1.numPC = getCurrentPC();
         tD1.idThread = idThread;
         tD1.idCPU = CPU1;
+        tD1.cicloInicio = reloj;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD1);     // hace la
         ++idThread;
         tD2.numPC = getCurrentPC();
         tD2.idThread = idThread;
         tD2.idCPU = CPU2;
+        tD2.cicloInicio = reloj;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD2);     // primera vez.
         ++idThread;
 
@@ -2531,15 +2534,99 @@ void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *
 }
 
 
-void principalThread::fin(int idThread, int *registros, int idCPU)
+void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInicio)
 {
+    pthread_mutex_lock(&mutEstadisticas);
+    estadisticas += " ---------- Datos del hilo "+QString::number(idThread)+" ----------\n";
+    estadisticas += " * Se ejecuto en el procesador CPU"+QString::number(idCPU)+".\n";
+    estadisticas += " * Empezó a correr en el ciclo "+QString::number(cicloInicio)+".\n";
+    estadisticas += " * Duró corriendo "+QString::number(reloj-cicloInicio)+" ciclos de reloj.\n";
+    estadisticas += " * Los registros quedaron como:\n";
+    for(int i=0; i<32; ++i){
+        estadisticas += "    R["+QString::number(i)+"] = "+QString::number(registros[i])+'\n';
+    }
+    estadisticas += " * La cache de datos al finalizar quedó como:\n";
+    switch(idCPU){
+    case CPU0:
+        while(pthread_mutex_trylock(&mutCache) != 0){
+            //sigue intentando hasta obtener el bloqueo de la cache
+        }
+        for(int i=0; i<4; ++i){
+            QChar estado;
+            switch(sCache.cache[5][i]){
+            case M:
+                estado = 'M';
+                break;
+            case I:
+                estado = 'I';
+                break;
+            case C:
+                estado = 'C';
+                break;
+            }
+            estadisticas += "Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(sCache.cache[4][i])+'\n';
+            estadisticas += "| ";
+            for(int j=0; j<4; ++j){
+                estadisticas += QString::number(sCache.cache[j][i]) + " | ";
+            }
+        }
+        pthread_mutex_unlock(&mutCache);
+        break;
+    case CPU1:
+        while(pthread_mutex_trylock(&mutCache1) != 0){
+            //sigue intentando hasta obtener el bloqueo de la cache
+        }
+        for(int i=0; i<4; ++i){
+            QChar estado;
+            switch(sCache1.cache[5][i]){
+            case M:
+                estado = 'M';
+                break;
+            case I:
+                estado = 'I';
+                break;
+            case C:
+                estado = 'C';
+                break;
+            }
+            estadisticas += "Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(sCache1.cache[4][i])+'\n';
+            estadisticas += "| ";
+            for(int j=0; j<4; ++j){
+                estadisticas += QString::number(sCache1.cache[j][i]) + " | ";
+            }
+        }
+        pthread_mutex_unlock(&mutCache1);
+        break;
+    case CPU2:
+        while(pthread_mutex_trylock(&mutCache2) != 0){
+            //sigue intentando hasta obtener el bloqueo de la cache
+        }
+        for(int i=0; i<4; ++i){
+            QChar estado;
+            switch(sCache2.cache[5][i]){
+            case M:
+                estado = 'M';
+                break;
+            case I:
+                estado = 'I';
+                break;
+            case C:
+                estado = 'C';
+                break;
+            }
+            estadisticas += "Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(sCache2.cache[4][i])+'\n';
+            estadisticas += "| ";
+            for(int j=0; j<4; ++j){
+                estadisticas += QString::number(sCache2.cache[j][i]) + " | ";
+            }
+        }
+        pthread_mutex_unlock(&mutCache2);
+        break;
+    }
+    pthread_mutex_unlock(&mutEstadisticas);
 
-    int currentCPU = idCPU;
-    if(colaPCs.empty()){                                                                    /* Verificacion sobre las instrucciones restantes por ejecutar */
-        //imprime las estadisticas
-
-    }else{
-        procesador(idThread+1, getCurrentPC(), currentCPU);                                 /* El identificador del hilo a correr aumenta ya que es nuevo */
+    if(colaPCs.empty() == false){                                                                    /* Verificacion sobre las instrucciones restantes por ejecutar */
+        procesador(idThread+1, getCurrentPC(), idCPU, reloj);                                 /* El identificador del hilo a correr aumenta ya que es nuevo */
         /* Ejecucion de un nuevo hilo, sobre el CPU que finalizó */
     }
 

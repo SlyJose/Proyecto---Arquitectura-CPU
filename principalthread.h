@@ -62,6 +62,7 @@ struct threadData{      /*!< Para pasar parametros a los threads. */
     int idThread;
     int numPC;
     int idCPU;
+    int cicloInicio;
 };
 
 struct sMemory{
@@ -84,7 +85,7 @@ private:
      * @param PC que indica la posicion de la primera instruccion del programa que le corresponde a este hilo.
      * @return void* ya que asi lo ocupa los pthreads.
      */
-    void* procesador(int id, int pc, int idCPU);
+    void* procesador(int id, int pc, int idCPU, int cicloInicio);
 
     static void* procesadorHelper(void* threadStruct);
 
@@ -166,7 +167,7 @@ private:
 
     void copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY);
 
-    void fin(int idThread, int* registros, int idCPU);
+    void fin(int idThread, int* registros, int idCPU, int cicloInicio);
 
     int getCurrentPC();
 
