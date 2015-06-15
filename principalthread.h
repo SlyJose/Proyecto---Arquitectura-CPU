@@ -176,6 +176,8 @@ private:
     static void* cambiaCiclo(void* idThread);
     void esperaCambioCiclo(int idCPU);
 
+    void esperaCiclos(int numCiclos, int idCPU);
+
     bool lw(int regX, int regY, int n, int* vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU);
     bool sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, sCach *pTc, sDirectory *pTd, sMemory *pTmX, sCach *pTcX, sDirectory *pTdX, sMemory *pTmY, sCach *pTcY, sDirectory *pTdY, int idCPU);
 
