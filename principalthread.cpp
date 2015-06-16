@@ -78,7 +78,7 @@ principalThread::principalThread(QString programa, int numHilos)
     int tamVec = 1;
     pthread_mutex_lock(&mutColaPCs);
     colaPCs.push(0);
-    pthread_mutex_lock(&mutColaPCs);
+    pthread_mutex_unlock(&mutColaPCs);
     for(it = programa.begin(); it!= programa.end(); ++it){
         if(*it == ' ' || *it == '\n'){
             ++it;
@@ -104,7 +104,7 @@ principalThread::principalThread(QString programa, int numHilos)
         if(*it == '@'){
             pthread_mutex_lock(&mutColaPCs);
             colaPCs.push(j);
-            pthread_mutex_lock(&mutColaPCs);
+            pthread_mutex_unlock(&mutColaPCs);
         }else{
             if( *it == '|'){
                 vecPrograma[j] =numTemp.toInt(&ok, 10);
