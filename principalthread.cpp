@@ -32,7 +32,6 @@ int numThreads;             /*!< Numero total de programas que hay que ejecutar.
 int idThread;               /*!< Identificador del hilo. */
 QString estadisticas;       /*!< Donde se van a guardar los datos para mostrar al final de la ejecucion. */
 int reloj;                  /*!< Va a indicar por cual ciclo de reloj se encuentran los procesadores. */
-bool finProgramas;                   /*!< Cuando ya no hay mas hilos de MIPS que correr se pone en false. */
 
 /* Semaforos para los recursos críticos y para lograr sincronizacion entre los procesadores */
 pthread_mutex_t mutCache = PTHREAD_MUTEX_INITIALIZER;
@@ -70,7 +69,6 @@ principalThread::principalThread(QString programa, int numHilos)
     pthread_barrier_init(&barreraCPU0, 0, 2);
     pthread_barrier_init(&barreraCPU1, 0, 2);
     pthread_barrier_init(&barreraCPU2, 0, 2);
-    finProgramas = true;
     idThread = 0;
     reloj = 0;
     numThreads = numHilos;
@@ -405,9 +403,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache1);
-                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
-                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         // Libero los recursos que habia adquirido
                                         pthread_mutex_unlock(&mutDir);
@@ -425,9 +420,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache2);
-                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
-                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         // Libero los recursos que habia adquirido
                                         pthread_mutex_unlock(&mutDir);
@@ -447,9 +439,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache);
-                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
-                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache1);
@@ -466,9 +455,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache2);
-                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
-                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache1);
@@ -487,9 +473,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache);
-                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
-                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir2);
                                         pthread_mutex_unlock(&mutCache2);
@@ -506,9 +489,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTd->directory[indicePosMemDir][2] = 1;     // Actualizo el directorio
                                         pTd->directory[indicePosMemDir][1] = C;
                                         pthread_mutex_unlock(&mutCache1);
-                                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
-                                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir2);
                                         pthread_mutex_unlock(&mutCache2);
@@ -517,6 +497,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 break;
                             }
+                        }
+                        for(int i=0; i<4; ++i){     //Subo el bloque de memoria a cache
+                            pTc->cache[i][bloqueCache] =  pTm->memory[i][numBloque%8];
                         }
                     }
                     switch(idCPU){  //libero el directorio local
@@ -573,9 +556,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio remoto 1
                                         pTdX->directory[posDirectorio][2] = 1;
                                         pthread_mutex_unlock(&mutCache1);
-                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         //libero directorio y cache
                                         pthread_mutex_unlock(&mutDir1);
@@ -591,9 +571,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio remoto 1
                                         pTdX->directory[posDirectorio][2] = 1;
                                         pthread_mutex_unlock(&mutCache2);
-                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         //libero directorio y cache
                                         pthread_mutex_unlock(&mutDir1);
@@ -611,9 +588,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdX->directory[posDirectorio][1] = C;  //actualizo el directorio remoto 1
                                         pTdX->directory[posDirectorio][3] = 1;
                                         pthread_mutex_unlock(&mutCache);
-                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir);
                                         pthread_mutex_unlock(&mutCache1);
@@ -629,9 +603,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdX->directory[posDirectorio][1] = C;
                                         pTdX->directory[posDirectorio][3] = 1;
                                         pthread_mutex_unlock(&mutCache2);
-                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir);
                                         pthread_mutex_unlock(&mutCache1);
@@ -648,10 +619,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdX->directory[posDirectorio][1] = C;
                                         pTdX->directory[posDirectorio][4] = 1;
                                         pthread_mutex_unlock(&mutCache);
-                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
-                                        }
-
                                     }else{
                                         pthread_mutex_unlock(&mutDir);
                                         pthread_mutex_unlock(&mutCache2);
@@ -666,9 +633,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdX->directory[posDirectorio][1] = C;
                                         pTdX->directory[posDirectorio][4] = 1;
                                         pthread_mutex_unlock(&mutCache1);
-                                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir);
                                         pthread_mutex_unlock(&mutCache2);
@@ -677,6 +641,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 break;
                             }
+                        }
+                        for(int i=0; i<4; ++i){      // Sube el bloque de la memoria remota 1 a la mi cache
+                            pTc->cache[i][bloqueCache] =  pTmX->memory[i][numBloque%8];
                         }
                     }
                     // Libera el directorio remoto 1
@@ -734,9 +701,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][2] = 1;
                                         pthread_mutex_unlock(&mutCache1);
-                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         //libero directorio y cache
                                         pthread_mutex_unlock(&mutDir2);
@@ -752,9 +716,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][2] = 1;
                                         pthread_mutex_unlock(&mutCache2);
-                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         //libero directorio y cache
                                         pthread_mutex_unlock(&mutDir2);
@@ -772,9 +733,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][3] = 1;
                                         pthread_mutex_unlock(&mutCache);
-                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache1);
@@ -790,9 +748,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][3] = 1;
                                         pthread_mutex_unlock(&mutCache2);
-                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache1);
@@ -809,9 +764,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][4] = 1;
                                         pthread_mutex_unlock(&mutCache);
-                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache2);
@@ -826,9 +778,6 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pTdY->directory[posDirectorio][1] = C;
                                         pTdY->directory[posDirectorio][4] = 1;
                                         pthread_mutex_unlock(&mutCache1);
-                                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
-                                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
-                                        }
                                     }else{
                                         pthread_mutex_unlock(&mutDir1);
                                         pthread_mutex_unlock(&mutCache2);
@@ -837,6 +786,9 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                 }
                                 break;
                             }
+                        }
+                        for(int i=0; i<4; ++i){                        // Subo el bloque de la memoria remota 2 a mi cache
+                            pTc->cache[i][bloqueCache] =  pTmY->memory[i][numBloque%8];
                         }
                     }
                     // Libera el directorio remoto 2
@@ -870,6 +822,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         }
         esperaCiclos(1, idCPU); //Tiene que esperar 1 ciclo para hacer la lectura
         vecRegs[regX] = pTc->cache[filaCache][bloqueCache];         // Lo leo (lo pongo en el registro)
+        qDebug()<<"CPU"<<idCPU<<"subi un bloque de la cache a al registro"<<regX;
 
         // Libero mi cache, es el ultimo recurso que se libera
         switch(idCPU){
@@ -883,6 +836,7 @@ bool principalThread::lw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             pthread_mutex_unlock(&mutCache2);
             break;
         }
+        return true;
     }else{
         // No pude obtener el bloqueo sobre mi cache
         // devuelvo false ya que no puedo hacer nada.
@@ -970,17 +924,17 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
 
         switch(IR[0]){
         case DADDI:
-            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un DADDI";
+            qDebug()<<"CPU"<<idCPU<<" ejecuta un DADDI";
             registros[IR[2]] = registros[IR[1]] + IR[3];                //Rx <- Ry + n       |  Las tres instrucciones
             esperaCiclos(1, idCPU);
             break;
         case DADD:
-            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un DADD";
+            qDebug()<<"CPU"<<idCPU<<" ejecuta un DADD";
             registros[IR[3]] = registros[IR[1]] + registros[IR[2]];     //Rx <- Ry + Rz      |  tardan un ciclo de reloj
             esperaCambioCiclo(idCPU);
             break;
         case DSUB:
-            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un DSUB";
+            qDebug()<<"CPU"<<idCPU<<" ejecuta un DSUB";
             registros[IR[3]] = registros[IR[1]] - registros[IR[2]];     //Rx <- Ry - Rz      |  cada una.
             esperaCiclos(1, idCPU);
             break;
@@ -988,25 +942,25 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
             qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un LW";
             while(lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU) == false) {
                 esperaCiclos(1, idCPU);
-                qDebug()<<"CPU"<<QString::number(idCPU)<<" todavia esta ejecutando un LW";
+                qDebug()<<"CPU"<<idCPU<<" todavia esta ejecutando un LW";
             }         //Rx <- M(n + (Ry))
             break;
         case SW:
             qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un SW";
             while(sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU)==false){
                 esperaCiclos(1, idCPU);
-                qDebug()<<"CPU"<<QString::number(idCPU)<<" todavia esta ejecutando un SW";
+                qDebug()<<"CPU"<<idCPU<<" todavia esta ejecutando un SW";
             };           //M(n + (Ry)) <- Rx
             break;
         case BEQZ:
-            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un BEQZ";
+            qDebug()<<"CPU"<<idCPU<<" ejecuta un BEQZ";
             if(registros[IR[1]] == 0){                                  //Rx = 0, salta
                 IP += (IR[3])*4;
             }
             esperaCiclos(1, idCPU);
             break;
         case BNEZ:
-            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un BNEZ";
+            qDebug()<<"CPU"<<idCPU<<" ejecuta un BNEZ";
             if(registros[IR[1]] != 0){                                  //Rx != 0, salta
                 IP += (IR[3])*4;
             }
@@ -1015,7 +969,7 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
         }
     }
     if(vecPrograma[IP] == FIN){
-        qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un FIN";
+        qDebug()<<"CPU"<<idCPU<<" ejecuta un FIN";
         fin(idHilo, registros, idCPU, cicloInicio);
     }
 }
@@ -1059,10 +1013,7 @@ QString principalThread::controlador()
         pthread_join(vecThreads[1], NULL);      // Espera a que
         pthread_join(vecThreads[2], NULL);      // todos los hilos
         pthread_join(vecThreads[3], NULL);      // terminen de correr.
-        pthread_mutex_lock(&mutFinal);
-        finProgramas = false;        // Para que termine el hilo de los ciclos
-        pthread_mutex_unlock(&mutFinal);
-        pthread_join(vecThreads[0], NULL);      //Espera a que termine el que hilo que cotrola el reloj.
+        pthread_cancel(vecThreads[0]);          // Mata el hilo que controla el reloj.
         pthread_mutex_lock(&mutEstadisticas);
         /*
          * Tengo que imprimir la memoria.
@@ -1076,21 +1027,16 @@ QString principalThread::controlador()
 
 void* principalThread::cambiaCiclo(void *idThread)
 {
-
     long threadID = (long)idThread;
     qDebug()<<"Soy el hilo: "<<threadID<<" que controlo los ciclos de reloj";
-    pthread_mutex_lock(&mutFinal);
-    while(finProgramas){
-        pthread_mutex_unlock(&mutFinal);
+    while(true){
         pthread_barrier_wait(&barrera);
         ++reloj;
         qDebug()<<"Voy por el ciclo: "<<reloj;
         pthread_barrier_wait(&barreraCPU0);
         pthread_barrier_wait(&barreraCPU1);
         pthread_barrier_wait(&barreraCPU2);
-
     }
-    pthread_exit(NULL); // Termina el proceso.
 }
 
 void principalThread::esperaCambioCiclo(int idCPU)
@@ -1112,6 +1058,7 @@ void principalThread::esperaCambioCiclo(int idCPU)
 void principalThread::esperaCiclos(int numCiclos, int idCPU)
 {
     int relojTemp = reloj + numCiclos;
+    qDebug()<<"CPU"<<idCPU<<"se va a esperar hasta el ciclo "<<relojTemp;
     while(reloj < relojTemp){
         esperaCambioCiclo(idCPU);
     }
@@ -2532,7 +2479,8 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
     estadisticas += " ---------- Datos del hilo "+QString::number(idThread)+" ----------\n";
     estadisticas += " * Se ejecuto en el procesador CPU"+QString::number(idCPU)+".\n";
     estadisticas += " * Empezó a correr en el ciclo "+QString::number(cicloInicio)+".\n";
-    estadisticas += " * Duró corriendo "+QString::number(reloj-cicloInicio)+" ciclos de reloj.\n";
+    int cantCiclos = reloj-cicloInicio;
+    estadisticas += " * Duró corriendo "+QString::number(cantCiclos)+" ciclos de reloj.\n";
     estadisticas += " * Los registros quedaron como:\n";
     for(int i=0; i<32; ++i){
         estadisticas += "    R["+QString::number(i)+"] = "+QString::number(registros[i])+'\n';
@@ -2556,11 +2504,12 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
                 estado = 'C';
                 break;
             }
-            estadisticas += "Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(sCache.cache[4][i])+'\n';
-            estadisticas += "| ";
+            estadisticas += "    Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(sCache.cache[4][i])+'\n';
+            estadisticas += "        | ";
             for(int j=0; j<4; ++j){
                 estadisticas += QString::number(sCache.cache[j][i]) + " | ";
             }
+            estadisticas += '\n';
         }
         pthread_mutex_unlock(&mutCache);
         break;
@@ -2581,11 +2530,12 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
                 estado = 'C';
                 break;
             }
-            estadisticas += "Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(sCache1.cache[4][i])+'\n';
-            estadisticas += "| ";
+            estadisticas += "    Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(sCache1.cache[4][i])+'\n';
+            estadisticas += "        | ";
             for(int j=0; j<4; ++j){
                 estadisticas += QString::number(sCache1.cache[j][i]) + " | ";
             }
+            estadisticas += '\n';
         }
         pthread_mutex_unlock(&mutCache1);
         break;
@@ -2606,11 +2556,12 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
                 estado = 'C';
                 break;
             }
-            estadisticas += "Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(sCache2.cache[4][i])+'\n';
-            estadisticas += "| ";
+            estadisticas += "    Bloque de cache numero "+QString::number(i)+" estado "+estado+" etiq: "+QString::number(sCache2.cache[4][i])+'\n';
+            estadisticas += "        | ";
             for(int j=0; j<4; ++j){
                 estadisticas += QString::number(sCache2.cache[j][i]) + " | ";
             }
+            estadisticas += '\n';
         }
         pthread_mutex_unlock(&mutCache2);
         break;
