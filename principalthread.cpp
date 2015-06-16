@@ -49,6 +49,7 @@ pthread_mutex_t mutCPU1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCPU2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutEstadisticas = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutFinal= PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutColaPCs = PTHREAD_MUTEX_INITIALIZER;
 
 #ifdef __APPLE__
 principalThread::pthread_barrier_t barrera;
@@ -75,7 +76,9 @@ principalThread::principalThread(QString programa, int numHilos)
     QString::iterator it;
     QString strTemp;
     int tamVec = 1;
+    pthread_mutex_lock(&mutColaPCs);
     colaPCs.push(0);
+    pthread_mutex_lock(&mutColaPCs);
     for(it = programa.begin(); it!= programa.end(); ++it){
         if(*it == ' ' || *it == '\n'){
             ++it;
@@ -99,7 +102,9 @@ principalThread::principalThread(QString programa, int numHilos)
 
     for(it = strTemp.begin(); it!=strTemp.end(); ++it){
         if(*it == '@'){
+            pthread_mutex_lock(&mutColaPCs);
             colaPCs.push(j);
+            pthread_mutex_lock(&mutColaPCs);
         }else{
             if( *it == '|'){
                 vecPrograma[j] =numTemp.toInt(&ok, 10);
@@ -991,19 +996,25 @@ QString principalThread::controlador()
     pthread_create(&vecThreads[0], NULL, cambiaCiclo, (void*)idThread);    // Hilo que controla el reloj
     ++idThread;
     if(numThreads >= 3){
+        pthread_mutex_lock(&mutColaPCs);
         tD0.numPC = getCurrentPC();
+        pthread_mutex_unlock(&mutColaPCs);
         tD0.idThread = idThread;
         tD0.idCPU = CPU0;
         tD0.cicloInicio = reloj;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD0);     // Esto lo
         ++idThread;
+        pthread_mutex_lock(&mutColaPCs);
         tD1.numPC = getCurrentPC();
+        pthread_mutex_unlock(&mutColaPCs);
         tD1.idThread = idThread;
         tD1.idCPU = CPU1;
         tD1.cicloInicio = reloj;
         pthread_create(&vecThreads[idThread], NULL, procesadorHelper, (void*)&tD1);     // hace la
         ++idThread;
+        pthread_mutex_lock(&mutColaPCs);
         tD2.numPC = getCurrentPC();
+        pthread_mutex_unlock(&mutColaPCs);
         tD2.idThread = idThread;
         tD2.idCPU = CPU2;
         tD2.cicloInicio = reloj;
@@ -2567,11 +2578,15 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
         break;
     }
     pthread_mutex_unlock(&mutEstadisticas);
-
+    pthread_mutex_lock(&mutColaPCs);
     if(colaPCs.empty()){                /* Verificacion sobre las instrucciones restantes por ejecutar */
+        pthread_mutex_unlock(&mutColaPCs);
         pthread_exit(NULL);             //termina la ejecucion de esa CPU
     }else{
-        procesador(idThread+1, getCurrentPC(), idCPU, reloj);                                 /* El identificador del hilo a correr aumenta ya que es nuevo */
+        qDebug()<<"Voy a correr mas programas de MIPS";
+        int tempPC = getCurrentPC();
+        pthread_mutex_unlock(&mutColaPCs);
+        procesador(idThread+1, tempPC, idCPU, reloj);                                 /* El identificador del hilo a correr aumenta ya que es nuevo */
         /* Ejecucion de un nuevo hilo, sobre el CPU que finalizó */
     }
 
