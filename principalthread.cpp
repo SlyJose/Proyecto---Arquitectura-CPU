@@ -944,14 +944,14 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
             qDebug()<<"CPU"<<idCPU<<" ejecuta un LW";
             while(lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU) == false) {
                 esperaCiclos(1, idCPU);
-                qDebug()<<"CPU"<<idCPU<<" todavia esta ejecutando un LW";
+                qDebug()<<"CPU"<<idCPU<<" tuvo que soltar recursos y empezar un LW de nuevo.";
             }         //Rx <- M(n + (Ry))
             break;
         case SW:
             qDebug()<<"CPU"<<idCPU<<" ejecuta un SW";
             while(sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU)==false){
                 esperaCiclos(1, idCPU);
-                qDebug()<<"CPU"<<idCPU<<" todavia esta ejecutando un SW";
+                qDebug()<<"CPU"<<idCPU<<" tuvo que soltar recursos y empezar un SW de nuevo.";
             };           //M(n + (Ry)) <- Rx
             break;
         case BEQZ:
@@ -1023,9 +1023,31 @@ QString principalThread::controlador()
         pthread_join(vecThreads[3], NULL);      // terminen de correr.
         pthread_cancel(vecThreads[0]);          // Mata el hilo que controla el reloj.
         pthread_mutex_lock(&mutEstadisticas);
-        /*
-         * Tengo que imprimir la memoria.
-         */
+        estadisticas += "\n---------------- Memoria Compartida ----------------\n";
+        for(int i=0; i<8; ++i){
+            estadisticas += "Bloque numero "+QString::number(sMem.memory[4][i]-31)+":    ";
+            estadisticas += "| ";
+            for(int j=0; j<4; ++j){
+                estadisticas += QString::number(sMem.memory[j][i])+" | ";
+            }
+            estadisticas += '\n';
+        }
+        for(int i=0; i<8; ++i){
+            estadisticas += "Bloque numero "+QString::number(sMem1.memory[4][i]-31)+":    ";
+            estadisticas += "| ";
+            for(int j=0; j<4; ++j){
+                estadisticas += QString::number(sMem1.memory[j][i])+" | ";
+            }
+            estadisticas += '\n';
+        }
+        for(int i=0; i<8; ++i){
+            estadisticas += "Bloque numero "+QString::number(sMem2.memory[4][i]-31)+":    ";
+            estadisticas += "| ";
+            for(int j=0; j<4; ++j){
+                estadisticas += QString::number(sMem2.memory[j][i])+" | ";
+            }
+            estadisticas += '\n';
+        }
         pthread_mutex_unlock(&mutEstadisticas);
     }
 
@@ -1099,15 +1121,12 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     bool vacio = true;
     int contador = 0;
 
-    int resultBlockCache;                                                                     // Banderas de verificacion que indican si el recurso fue bloqueado de forma exitosa
-    int resultBlockDirect;
-    int resultBlockCacheX;
-    int resultBlockDirectX;
-    int resultBlockCacheY;
-    int resultBlockDirectY;
-
-    int tempReloj;                                                                              // Variable temporal que espera que se cumplan los ciclos de reloj necesarios para usar un recurso
-
+    int resultBlockCache = -1;                                                                    // Banderas de verificacion que indican si el recurso fue bloqueado de forma exitosa
+    int resultBlockDirect = -1;
+    int resultBlockCacheX = -1;
+    int resultBlockDirectX = -1;
+    int resultBlockCacheY = -1;
+    int resultBlockDirectY = -1;                                                                          // Variable temporal que espera que se cumplan los ciclos de reloj necesarios para usar un recurso
 
     /* Ciclo de verificacion en cache local */
 
@@ -1197,6 +1216,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                             pthread_mutex_unlock(&mutCache2);
                                             break;
                                         }
+
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1228,7 +1248,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
-
+                                    //**
                                 case CPU1:
                                     resultBlockCache = pthread_mutex_trylock(&mutCache);
                                     if(resultBlockCache == 0){
@@ -3082,9 +3102,11 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 pthread_mutex_unlock(&mutCache2);
                 break;
             }
+
             return false;
         }
     }
+    return false;
 }
 
 void principalThread::copiarAcache(sCach *pointerC, int bloqueCache, int numBloque, sMemory *pointerM, sMemory *pointerMX, sMemory *pointerMY){      /* Se recibe un puntero a cache y a memoria, se copia el bloque a cache */
@@ -3167,6 +3189,7 @@ void principalThread::copiarAmemoria(sCach *pointerC, int bloqueCache, sMemory *
 
 void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInicio)
 {
+    qDebug()<<"Soy CPU"<<idCPU<<" y acabo de entrar a FIN";
     pthread_mutex_lock(&mutEstadisticas);
     estadisticas += " ---------- Datos del hilo "+QString::number(idThread)+" ----------\n";
     estadisticas += " * Se ejecuto en el procesador CPU"+QString::number(idCPU)+".\n";
@@ -3180,9 +3203,7 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
     estadisticas += " * La cache de datos al finalizar quedó como:\n";
     switch(idCPU){
     case CPU0:
-        while(pthread_mutex_trylock(&mutCache) != 0){
-            //sigue intentando hasta obtener el bloqueo de la cache
-        }
+        pthread_mutex_lock(&mutCache);
         for(int i=0; i<4; ++i){
             QChar estado;
             switch(sCache.cache[5][i]){
@@ -3206,9 +3227,7 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
         pthread_mutex_unlock(&mutCache);
         break;
     case CPU1:
-        while(pthread_mutex_trylock(&mutCache1) != 0){
-            //sigue intentando hasta obtener el bloqueo de la cache
-        }
+        pthread_mutex_lock(&mutCache1);
         for(int i=0; i<4; ++i){
             QChar estado;
             switch(sCache1.cache[5][i]){
@@ -3232,9 +3251,7 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
         pthread_mutex_unlock(&mutCache1);
         break;
     case CPU2:
-        while(pthread_mutex_trylock(&mutCache2) != 0){
-            //sigue intentando hasta obtener el bloqueo de la cache
-        }
+        pthread_mutex_lock(&mutCache2);
         for(int i=0; i<4; ++i){
             QChar estado;
             switch(sCache2.cache[5][i]){
@@ -3260,7 +3277,7 @@ void principalThread::fin(int idThread, int *registros, int idCPU, int cicloInic
     }
     pthread_mutex_unlock(&mutEstadisticas);
     pthread_mutex_lock(&mutColaPCs);
-    if(colaPCs.empty()){                /* Verificacion sobre las instrucciones restantes por ejecutar */
+    if(colaPCs.empty()){                /* Verificacion sobre los programas restantes por ejecutar */
         pthread_mutex_unlock(&mutColaPCs);
         pthread_exit(NULL);             //termina la ejecucion de esa CPU
     }else{
