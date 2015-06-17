@@ -40,7 +40,7 @@
            <bool>true</bool>
           </property>
           <property name="styleSheet">
-           <string notr="true">font: 13pt &quot;Roboto&quot;;</string>
+           <string notr="true"/>
           </property>
           <property name="text">
            <string>Cargar archivo</string>
@@ -56,6 +56,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="aboutButton">
+          <property name="styleSheet">
+           <string notr="true"/>
+          </property>
           <property name="text">
            <string>About</string>
           </property>

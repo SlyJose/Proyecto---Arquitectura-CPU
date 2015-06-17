@@ -37,9 +37,6 @@ int reloj;                  /*!< Va a indicar por cual ciclo de reloj se encuent
 pthread_mutex_t mutCache = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCache1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutCache2 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutMem = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutMem1 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutMem2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutDir = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutDir1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutDir2 = PTHREAD_MUTEX_INITIALIZER;
@@ -944,14 +941,14 @@ void* principalThread::procesador(int id, int pc, int idCPU, int cicloInicio)
             esperaCiclos(1, idCPU);
             break;
         case LW:
-            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un LW";
+            qDebug()<<"CPU"<<idCPU<<" ejecuta un LW";
             while(lw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU) == false) {
                 esperaCiclos(1, idCPU);
                 qDebug()<<"CPU"<<idCPU<<" todavia esta ejecutando un LW";
             }         //Rx <- M(n + (Ry))
             break;
         case SW:
-            qDebug()<<"CPU"<<QString::number(idCPU)<<" ejecuta un SW";
+            qDebug()<<"CPU"<<idCPU<<" ejecuta un SW";
             while(sw(IR[2], IR[1], IR[3], registros, pMemory, pCache, pDirect, pMemoryX, pCacheX, pDirectX, pMemoryY, pCacheY, pDirectY, idCPU)==false){
                 esperaCiclos(1, idCPU);
                 qDebug()<<"CPU"<<idCPU<<" todavia esta ejecutando un SW";
@@ -1184,10 +1181,22 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                                 recorrer = false;
                                             }
                                         }
-
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1200,10 +1209,22 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                                 recorrer = false;
                                             }
                                         }
-
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1223,6 +1244,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1239,6 +1273,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1258,6 +1305,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
@@ -1274,6 +1334,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     break;
@@ -1302,6 +1375,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         }
                         pthread_mutex_unlock(&mutDir);
                     }else{
+                        // Libero la cache local
+                        switch(idCPU){
+                        case CPU0:
+                            pthread_mutex_unlock(&mutCache);
+                            break;
+                        case CPU1:
+                            pthread_mutex_unlock(&mutCache1);
+                            break;
+                        case CPU2:
+                            pthread_mutex_unlock(&mutCache2);
+                            break;
+                        }
                         return false;
                     }
                 }
@@ -1329,6 +1414,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1345,6 +1443,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1364,6 +1475,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1380,6 +1504,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1399,6 +1536,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
@@ -1415,6 +1565,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     break;
@@ -1443,6 +1606,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         }
                         pthread_mutex_unlock(&mutDir1);
                     }else{
+                        // Libero la cache local
+                        switch(idCPU){
+                        case CPU0:
+                            pthread_mutex_unlock(&mutCache);
+                            break;
+                        case CPU1:
+                            pthread_mutex_unlock(&mutCache1);
+                            break;
+                        case CPU2:
+                            pthread_mutex_unlock(&mutCache2);
+                            break;
+                        }
                         return false;
                     }
                 }
@@ -1469,6 +1644,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1484,6 +1672,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1503,6 +1704,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1519,6 +1733,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1537,6 +1764,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
@@ -1552,6 +1792,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     break;
@@ -1580,6 +1833,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                         }
                         pthread_mutex_unlock(&mutDir2);
                     }else{
+                        // Libero la cache local
+                        switch(idCPU){
+                        case CPU0:
+                            pthread_mutex_unlock(&mutCache);
+                            break;
+                        case CPU1:
+                            pthread_mutex_unlock(&mutCache1);
+                            break;
+                        case CPU2:
+                            pthread_mutex_unlock(&mutCache2);
+                            break;
+                        }
                         return false;
                     }
                 }
@@ -1622,9 +1887,11 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             bool modificado = false;
 
             if(pTc->cache[5][bloqueCache] == M){                                                            /* Si esta modificado, debe guardarse en memoria */
+                esperaCiclos(1, idCPU);     // Dura 1 ciclo en invalidar una cache
                 modificado = true;
                 pTc->cache[5][bloqueCache] = I;                                              // Invalida en cache local
             }
+            // Si entro en el if invalido la cache local y despues voy a modificar el directorio
             if(numBloqueReemplazar < 8){                                                            // Bloque a reemplazar en el primer directorio
                 resultBlockDirect = pthread_mutex_trylock(&mutDir);
                 bool continuar = true;
@@ -1649,6 +1916,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1664,6 +1944,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1682,6 +1975,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1697,6 +2003,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1715,6 +2034,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
@@ -1730,6 +2062,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     break;
@@ -1750,6 +2095,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     }
                     pthread_mutex_unlock(&mutDir);
                 }else{
+                    // Libero la cache local
+                    switch(idCPU){
+                    case CPU0:
+                        pthread_mutex_unlock(&mutCache);
+                        break;
+                    case CPU1:
+                        pthread_mutex_unlock(&mutCache1);
+                        break;
+                    case CPU2:
+                        pthread_mutex_unlock(&mutCache2);
+                        break;
+                    }
                     return false;
                 }
             }
@@ -1778,6 +2135,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1793,6 +2163,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1811,6 +2194,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1826,6 +2222,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1844,6 +2253,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
@@ -1859,6 +2281,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir1);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     break;
@@ -1879,6 +2314,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     }
                     pthread_mutex_unlock(&mutDir1);
                 }else{
+                    // Libero la cache local
+                    switch(idCPU){
+                    case CPU0:
+                        pthread_mutex_unlock(&mutCache);
+                        break;
+                    case CPU1:
+                        pthread_mutex_unlock(&mutCache1);
+                        break;
+                    case CPU2:
+                        pthread_mutex_unlock(&mutCache2);
+                        break;
+                    }
                     return false;
                 }
             }
@@ -1908,6 +2355,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1923,6 +2383,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1941,6 +2414,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -1956,6 +2442,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache2);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 2
                                     }
                                     break;
@@ -1974,6 +2473,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 0
                                     }
                                     resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
@@ -1989,6 +2501,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                                         pthread_mutex_unlock(&mutCache1);
 
                                     }else{
+                                        pthread_mutex_unlock(&mutDir2);
+                                        // Libero la cache local
+                                        switch(idCPU){
+                                        case CPU0:
+                                            pthread_mutex_unlock(&mutCache);
+                                            break;
+                                        case CPU1:
+                                            pthread_mutex_unlock(&mutCache1);
+                                            break;
+                                        case CPU2:
+                                            pthread_mutex_unlock(&mutCache2);
+                                            break;
+                                        }
                                         return false;    // No se logra bloquear la cache en CPU 1
                                     }
                                     break;
@@ -2010,6 +2535,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                     }
                     pthread_mutex_unlock(&mutDir2);
                 }else{
+                    // Libero la cache local
+                    switch(idCPU){
+                    case CPU0:
+                        pthread_mutex_unlock(&mutCache);
+                        break;
+                    case CPU1:
+                        pthread_mutex_unlock(&mutCache1);
+                        break;
+                    case CPU2:
+                        pthread_mutex_unlock(&mutCache2);
+                        break;
+                    }
                     return false;
                 }
             }
@@ -2052,6 +2589,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             }
             pthread_mutex_unlock(&mutDir);
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;
         }
     }
@@ -2086,6 +2635,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             }
             pthread_mutex_unlock(&mutDir1);
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;
         }
     }
@@ -2120,6 +2681,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             }
             pthread_mutex_unlock(&mutDir2);
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;
         }
     }
@@ -2156,6 +2729,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             pthread_mutex_unlock(&mutCache1);
 
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;    // No se logra bloquear la cache en CPU 1
         }
         resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -2181,6 +2766,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             pthread_mutex_unlock(&mutCache2);
 
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;    // No se logra bloquear la cache en CPU 2
         }
         break;
@@ -2209,6 +2806,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;    // No se logra bloquear la cache en CPU 0
         }
         resultBlockCacheY = pthread_mutex_trylock(&mutCache2);
@@ -2234,6 +2843,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             pthread_mutex_unlock(&mutCache2);
 
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;    // No se logra bloquear la cache en CPU 2
         }
         break;
@@ -2262,6 +2883,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             pthread_mutex_unlock(&mutCache);                                                     // Se liberan las caches
 
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;    // No se logra bloquear la cache en CPU 0
         }
         resultBlockCacheX = pthread_mutex_trylock(&mutCache1);
@@ -2287,6 +2920,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
             pthread_mutex_unlock(&mutCache1);
 
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;    // No se logra bloquear la cache en CPU 1
         }
         break;
@@ -2347,6 +2992,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
             return true;
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;
         }
     }
@@ -2374,6 +3031,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
             return true;
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;
         }
     }
@@ -2401,6 +3070,18 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
             return true;
         }else{
+            // Libero la cache local
+            switch(idCPU){
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
             return false;
         }
     }
