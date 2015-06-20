@@ -1140,8 +1140,7 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
     int dirPrev = n + vecRegs[regY];
     int numBloque = dirPrev / 16;                                                               /* Se obtiene el numero del bloque a buscar en cache */
-    int bloqueCache = numBloque % 4;                                                            /* Posicion en cache que debe tomar el bloque */
-    bool vacio = true;
+    int bloqueCache = numBloque % 4;                                                            /* Posicion en cache que debe tomar el bloque */    
     int contador = 0;
 
     int resultBlockCache;                                                                     // Banderas de verificacion que indican si el recurso fue bloqueado de forma exitosa
@@ -1151,14 +1150,11 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     int resultBlockCacheY;
     int resultBlockDirectY;
 
-    int tempReloj;                                                                              // Variable temporal que espera que se cumplan los ciclos de reloj necesarios para usar un recurso
-
-
     /* Ciclo de verificacion en cache local */
 
     switch (idCPU) {                                                                                 // Bloqueo de la cache local
     case CPU0:
-        resultBlockCache = pthread_mutex_trylock(&mutCache);
+        resultBlockCache = pthread_mutex_trylock(&mutCache);        
         break;
     case CPU1:
         resultBlockCache = pthread_mutex_trylock(&mutCache1);
@@ -1168,13 +1164,16 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
         break;
     }
 
-    while(vacio && contador < 4){
+
+    while(contador < 4){
+
+        //qDebug()<<"Hola mundo imprimo la vuelta: ";
 
         /* CASO #1 BLOQUE EN CACHE LOCAL EN ESTADO: M */
 
         if(resultBlockCache == 0){                                                                       // Recurso bloqueado de forma exitosa
-            if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == M){                    // Se verifica si se encuentra en cache local estado M
-                vacio = false;
+
+            if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == M){                    // Se verifica si se encuentra en cache local estado M                
                 pTc->cache[(dirPrev%16)/4][bloqueCache] = vecRegs[regX];                                 /* Se almacena el contenido del registro en la posicion de la cache */
                 pTc->cache[5][bloqueCache] = M;
 
@@ -1191,16 +1190,41 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 }
                 return true;
             }
+
+            switch(idCPU){                                                                          // Libera la cache local de todos modos
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
+
         }else{
+
             return false;
         }
-
-
 
         /* CASO #2 BLOQUE EN CACHE LOCAL EN ESTADO: C  */
 
 
+        switch (idCPU) {                                                                                 // Bloqueo de la cache local
+        case CPU0:
+            resultBlockCache = pthread_mutex_trylock(&mutCache);
+            break;
+        case CPU1:
+            resultBlockCache = pthread_mutex_trylock(&mutCache1);
+            break;
+        case CPU2:
+            resultBlockCache = pthread_mutex_trylock(&mutCache2);
+            break;
+        }
+
         if(resultBlockCache == 0){
+
             if(pTc->cache[4][contador] == numBloque && pTc->cache[5][contador] == C){                     /* El bloque esta en cache local compartido */
 
                 /* Se busca el directorio donde se encuentra el bloque a modificar, se cambia su estado */
@@ -1642,18 +1666,41 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 }
                 return true;
             }
-        }else{
+
+            switch(idCPU){                                                                          // Libera la cache local de todos modos
+            case CPU0:
+                pthread_mutex_unlock(&mutCache);
+                break;
+            case CPU1:
+                pthread_mutex_unlock(&mutCache1);
+                break;
+            case CPU2:
+                pthread_mutex_unlock(&mutCache2);
+                break;
+            }
+
+        }else{            
             return false;                                                                           // No se logra bloquear la cache local
         }
 
         ++contador;
     }
 
-
+        qDebug()<<"llega despues de la verificacion en cache local ";
 
     /* LLegado a este punto, el bloque no se encuentra en cache local */
 
-
+    switch (idCPU) {                                                                                 // Bloqueo de la cache local
+    case CPU0:
+        resultBlockCache = pthread_mutex_trylock(&mutCache);
+        break;
+    case CPU1:
+        resultBlockCache = pthread_mutex_trylock(&mutCache1);
+        break;
+    case CPU2:
+        resultBlockCache = pthread_mutex_trylock(&mutCache2);
+        break;
+    }
 
     /* El bloque que se encuentra en la posicion donde va a caer el nuevo bloque, dependiendo de su estado, se almacena en memoria o no */
 
@@ -2056,6 +2103,19 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
                 }
             }
         }
+
+        switch(idCPU){                                                                          // Libera la cache local de todos modos
+        case CPU0:
+            pthread_mutex_unlock(&mutCache);
+            break;
+        case CPU1:
+            pthread_mutex_unlock(&mutCache1);
+            break;
+        case CPU2:
+            pthread_mutex_unlock(&mutCache2);
+            break;
+        }
+
     }else{
         return false;                                                                               // No se logra bloquear la cache local
     }
@@ -2169,8 +2229,39 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
 
     /* CASO # 3 BLOQUE EN CACHE EXTERNA */
 
+    qDebug()<<"llega a la cache externa ";
+
     bool recorrer = true;
     bool encontrado = false;
+
+
+    switch (idCPU) {                                                                                 // Bloqueo de la cache local
+    case CPU0:
+        resultBlockCache = pthread_mutex_trylock(&mutCache);
+        break;
+    case CPU1:
+        resultBlockCache = pthread_mutex_trylock(&mutCache1);
+        break;
+    case CPU2:
+        resultBlockCache = pthread_mutex_trylock(&mutCache2);
+        break;
+    }
+
+    if(resultBlockCache != 0){
+        switch(idCPU){                                                                          // Libera la cache local de todos modos
+        case CPU0:
+            pthread_mutex_unlock(&mutCache);
+            break;
+        case CPU1:
+            pthread_mutex_unlock(&mutCache1);
+            break;
+        case CPU2:
+            pthread_mutex_unlock(&mutCache2);
+            break;
+        }
+        return false;
+    }
+
 
     switch(idCPU){                                                                              /* Switch encargado de verificar el bloque en las caches externas,
                                                                                                           invalidar el bloque en estas, y copiarlo a memoria si fue modificado */
@@ -2362,8 +2453,30 @@ bool principalThread::sw(int regX, int regY, int n, int *vecRegs, sMemory *pTm, 
     /* LLegado a este punto, el bloque no se encuentra en ninguna cache, ya el directorio donde esta el bloque fue modificado */
 
 
+    qDebug()<<"llega a la no cache ";
+
+
+    switch (idCPU) {                                                                                 // Bloqueo de la cache local
+    case CPU0:
+        resultBlockCache = pthread_mutex_trylock(&mutCache);
+        break;
+    case CPU1:
+        resultBlockCache = pthread_mutex_trylock(&mutCache1);
+        break;
+    case CPU2:
+        resultBlockCache = pthread_mutex_trylock(&mutCache2);
+        break;
+    }
+
+
 
     /* CASO #4 BLOQUE EN NINGUNA CACHE */
+
+
+
+    if(resultBlockCache != 0){
+        return false;
+    }
 
     if(numBloque < 8){                                                                          // Revision de directorios
         resultBlockDirect = pthread_mutex_trylock(&mutDir);
